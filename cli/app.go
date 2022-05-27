@@ -1,0 +1,152 @@
+package cli
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+
+	"github.com/mundacity/go-doo/domain"
+	"github.com/mundacity/go-doo/services"
+	"github.com/mundacity/go-doo/store"
+	"github.com/spf13/viper"
+)
+
+// Denotes app instance's use of local, remote, or multiple storage options;
+// determined via an environment variable
+type InstanceType int
+
+const (
+	local InstanceType = iota
+	remote
+	multiple // allows for simultaneous use of multiple storage options - all local, all remote, or a mix.
+	// good excuse for experimenting with concurrency - go routines & channels
+)
+
+// Flags used throughout the system
+type CMD_FLAG string
+
+const (
+	all             CMD_FLAG = "-a"
+	body            CMD_FLAG = "-b"
+	child           CMD_FLAG = "-c"
+	date            CMD_FLAG = "-d"
+	creation        CMD_FLAG = "-e" // e for existence!
+	finished        CMD_FLAG = "-f" // item complete
+	itmId           CMD_FLAG = "-i"
+	mode            CMD_FLAG = "-m"
+	next            CMD_FLAG = "-n"
+	parent          CMD_FLAG = "-p"
+	tag             CMD_FLAG = "-t"
+	changeBody      CMD_FLAG = "-B" // append or replace
+	changeParent    CMD_FLAG = "-C"
+	changedDeadline CMD_FLAG = "-D"
+	markComplete    CMD_FLAG = "-F"
+	changeMode      CMD_FLAG = "-M"
+	changeTag       CMD_FLAG = "-T" // append, replace, or remove
+	appendMode      CMD_FLAG = "--append"
+	replaceMode     CMD_FLAG = "--replace"
+)
+
+// AppContext encapsulates user inputs and is
+// passed around to execute desired operations
+type AppContext struct {
+	args       []string
+	client     http.Client
+	todoRepo   domain.IRepository // todo: make a slice to implement multiple dbs
+	instance   InstanceType
+	DateLayout string
+}
+
+// Init sets up the appContext to be used in
+// properly executing user commands
+func Init(osArgs []string) (*AppContext, error) {
+	instVar := viper.GetInt("INSTANCE_TYPE")
+	var app AppContext
+
+	if instVar < 0 || instVar > 2 {
+		return &app, &InstanceTypeNotRecognised{}
+	}
+
+	app = AppContext{args: osArgs, instance: InstanceType(instVar)}
+
+	var connStr string
+	testing := viper.GetBool("DEVELOPMENT")
+	if testing {
+		connStr = viper.GetString("TESTING_CONN")
+	} else {
+		connStr = viper.GetString("CONNECTION_STRING")
+	}
+
+	dl := viper.GetString("DATETIME_FORMAT")
+	app.todoRepo = services.GetRepo(store.Sqlite, connStr, dl)
+
+	app.DateLayout = dl
+	return &app, nil
+}
+
+func RunApp(osArgs []string, w io.Writer) int {
+
+	config()
+
+	app, err := Init(osArgs)
+	if err != nil {
+		fmt.Printf("%v", err)
+		return 2
+	}
+
+	cmd, err := _getBasicCommand(app)
+	if err != nil {
+		fmt.Printf("%v", err)
+		return 2
+	}
+
+	err = cmd.ParseFlags()
+	if err != nil {
+		fmt.Printf("error: '%v'", err)
+		return 2
+	}
+
+	err = cmd.Run(w)
+	if err != nil {
+		fmt.Printf("error: '%v'", err)
+		return 2
+	}
+
+	// err = app.closeDb()
+	// if err != nil {
+	// 	fmt.Printf("error: '%v'", err)
+	// 	return 2
+	// }
+	return 0
+}
+
+func config() {
+	viper.SetDefault("MAX_LENGTH", 2000)
+	viper.SetDefault("MAX_INT_DIGITS", 4)
+	viper.SetDefault("TAG_DELIMITER", "*")
+	viper.SetDefault("DATETIME_FORMAT", "2006-01-02")
+
+	viper.SetConfigFile(".\\env")
+	viper.SetConfigType("env")
+	viper.ReadInConfig()
+}
+
+func _getBasicCommand(ctx *AppContext) (ICommand, error) {
+	arg1 := ctx.args[0]
+	ctx.args = ctx.args[1:]
+	var cmd ICommand
+	var err error
+
+	switch arg1 {
+	case "add":
+		cmd, err = NewAddCommand(ctx)
+	case "get":
+		cmd, err = NewGetCommand(ctx)
+	case "edit":
+		cmd, err = NewEditCommand(ctx)
+	default:
+		return nil, errors.New("invalid command")
+	}
+	return cmd, err
+}
