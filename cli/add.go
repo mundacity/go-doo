@@ -73,7 +73,7 @@ func (aCmd *AddCommand) SetupFlagMapper(userFlags []string) error {
 		return err
 	}
 
-	aCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(_getNowString(), aCmd.appCtx.DateLayout))
+	aCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(getNowString(), aCmd.appCtx.DateLayout))
 
 	err = aCmd.parser.CheckInitialisation()
 	if err != nil {
@@ -83,7 +83,7 @@ func (aCmd *AddCommand) SetupFlagMapper(userFlags []string) error {
 	return nil
 }
 
-func _getNowString() string {
+func getNowString() string {
 	n := time.Now()
 	return util.StringFromDate(n)
 }
