@@ -56,38 +56,22 @@ type AppContext struct {
 	todoRepo   domain.IRepository // todo: make a slice to implement multiple dbs
 	instance   InstanceType
 	DateLayout string
+	conn       string
+	maxLen     int
+	intDigits  int
+	tagDemlim  string
 }
 
 // Init sets up the appContext to be used in
 // properly executing user commands
 func Init(osArgs []string) (*AppContext, error) {
-	instVar := viper.GetInt("INSTANCE_TYPE")
-	var app AppContext
 
-	if instVar < 0 || instVar > 2 {
-		return &app, &InstanceTypeNotRecognised{}
-	}
-
-	app = AppContext{args: osArgs, instance: InstanceType(instVar)}
-
-	var connStr string
-	testing := viper.GetBool("DEVELOPMENT")
-	if testing {
-		connStr = viper.GetString("TESTING_CONN")
-	} else {
-		connStr = viper.GetString("CONNECTION_STRING")
-	}
-
-	dl := viper.GetString("DATETIME_FORMAT")
-	app.todoRepo = services.GetRepo(store.Sqlite, connStr, dl)
-
-	app.DateLayout = dl
+	app := AppContext{args: osArgs}
+	app.config()
 	return &app, nil
 }
 
 func RunApp(osArgs []string, w io.Writer) int {
-
-	config()
 
 	app, err := Init(osArgs)
 	if err != nil {
@@ -113,23 +97,35 @@ func RunApp(osArgs []string, w io.Writer) int {
 		return 2
 	}
 
-	// err = app.closeDb()
-	// if err != nil {
-	// 	fmt.Printf("error: '%v'", err)
-	// 	return 2
-	// }
 	return 0
 }
 
-func config() {
+func (app *AppContext) config() {
+
 	viper.SetDefault("MAX_LENGTH", 2000)
 	viper.SetDefault("MAX_INT_DIGITS", 4)
 	viper.SetDefault("TAG_DELIMITER", "*")
 	viper.SetDefault("DATETIME_FORMAT", "2006-01-02")
+	viper.SetDefault("INSTANCE_TYPE", 0)
 
 	viper.SetConfigFile(".\\env")
 	viper.SetConfigType("env")
 	viper.ReadInConfig()
+
+	app.maxLen = viper.GetInt("MAX_LENGTH")
+	app.intDigits = viper.GetInt("MAX_INT_DIGITS")
+	app.tagDemlim = viper.GetString("TAG_DELIMITER")
+	app.instance = InstanceType(viper.GetInt("INSTANCE_TYPE"))
+
+	testing := viper.GetBool("DEVELOPMENT")
+	if testing {
+		app.conn = viper.GetString("TESTING_CONN")
+	} else {
+		app.conn = viper.GetString("CONNECTION_STRING")
+	}
+
+	app.DateLayout = viper.GetString("DATETIME_FORMAT")
+	app.todoRepo = services.GetRepo(store.Sqlite, app.conn, app.DateLayout)
 }
 
 func _getBasicCommand(ctx *AppContext) (ICommand, error) {
