@@ -12,7 +12,6 @@ import (
 
 	fp "github.com/mundacity/flag-parser"
 	"github.com/mundacity/go-doo/domain"
-	"github.com/spf13/viper"
 )
 
 var getNewVals bool
@@ -42,7 +41,6 @@ type EditCommand struct {
 	newDeadline   string
 	newParent     int
 	newlyComplete bool
-	tagDelim      string
 
 	//mode priorityMode TODO
 }
@@ -80,8 +78,7 @@ func (eCmd *EditCommand) SetupFlagMapper(userFlags []string) error {
 		return err
 	}
 
-	df := viper.GetString("DATETIME_FORMAT")
-	eCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(_getNowString(), df))
+	eCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(_getNowString(), eCmd.appCtx.DateLayout))
 
 	err = eCmd.parser.CheckInitialisation()
 	if err != nil {
@@ -94,9 +91,8 @@ func (eCmd *EditCommand) SetupFlagMapper(userFlags []string) error {
 func (eCmd *EditCommand) GetValidFlags() ([]fp.FlagInfo, error) {
 	var ret []fp.FlagInfo
 
-	maxIntDigits := viper.GetInt("MAX_INT_DIGITS")
-	lenMax := viper.GetInt("MAX_LENGTH")
-	eCmd.tagDelim = viper.GetString("TAG_DELIMITER")
+	maxIntDigits := eCmd.appCtx.intDigits
+	lenMax := eCmd.appCtx.maxLen
 
 	f1 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
 	f2 := fp.FlagInfo{FlagName: string(itmId), FlagType: fp.Integer, MaxLen: maxIntDigits}
@@ -250,7 +246,7 @@ func (eCmd *EditCommand) updateElements(itm *domain.TodoItem) {
 		for t := range itm.Tags {
 			delete(itm.Tags, t) // clear out any stored in/after first stage
 		}
-		parseTagInput(itm, eCmd.newTag, eCmd.tagDelim)
+		parseTagInput(itm, eCmd.newTag, eCmd.appCtx.tagDemlim)
 	}
 }
 

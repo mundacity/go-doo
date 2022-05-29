@@ -10,7 +10,6 @@ import (
 	fp "github.com/mundacity/flag-parser"
 	"github.com/mundacity/go-doo/domain"
 	"github.com/mundacity/go-doo/util"
-	"github.com/spf13/viper"
 )
 
 // Lets user add new items
@@ -24,7 +23,6 @@ type AddCommand struct {
 	childOf      int    // child of the int argument
 	parentOf     int    // parent of the int argument
 	deadlineDate string
-	tagDelim     string // user set delimiter for multiple tag parsing
 }
 
 type priorityMode string
@@ -40,9 +38,8 @@ const (
 func (aCmd *AddCommand) GetValidFlags() ([]fp.FlagInfo, error) { // too tired to come up with anything more elegant - todo!
 	var ret []fp.FlagInfo
 
-	lenMax := viper.GetInt("MAX_LENGTH")
-	maxIntDigits := viper.GetInt("MAX_INT_DIGITS")
-	aCmd.tagDelim = viper.GetString("TAG_DELIMITER")
+	lenMax := aCmd.appCtx.maxLen
+	maxIntDigits := aCmd.appCtx.intDigits
 
 	f2 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
 	f3 := fp.FlagInfo{FlagName: string(mode), FlagType: fp.Str, MaxLen: 1}
@@ -76,8 +73,7 @@ func (aCmd *AddCommand) SetupFlagMapper(userFlags []string) error {
 		return err
 	}
 
-	df := viper.GetString("DATETIME_FORMAT")
-	aCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(_getNowString(), df))
+	aCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(_getNowString(), aCmd.appCtx.DateLayout))
 
 	err = aCmd.parser.CheckInitialisation()
 	if err != nil {
@@ -148,7 +144,7 @@ func (aCmd *AddCommand) GenerateTodoItem() (domain.TodoItem, error) {
 	td.CreationDate = time.Now()
 	td.ParentId = aCmd.childOf
 
-	parseTagInput(&td, aCmd.tagInput, aCmd.tagDelim)
+	parseTagInput(&td, aCmd.tagInput, aCmd.appCtx.tagDemlim)
 	return td, nil
 }
 
