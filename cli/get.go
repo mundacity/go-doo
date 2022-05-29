@@ -10,7 +10,6 @@ import (
 	fp "github.com/mundacity/flag-parser"
 	"github.com/mundacity/go-doo/domain"
 	"github.com/mundacity/go-doo/util"
-	"github.com/spf13/viper"
 )
 
 type GetCommand struct {
@@ -62,8 +61,7 @@ func (getCmd *GetCommand) SetupFlagMapper(userFlags []string) error {
 		return err
 	}
 
-	df := viper.GetString("DATETIME_FORMAT")
-	getCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(_getNowString(), df))
+	getCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(_getNowString(), getCmd.appCtx.DateLayout))
 
 	err = getCmd.parser.CheckInitialisation()
 	if err != nil {
@@ -76,9 +74,9 @@ func (getCmd *GetCommand) SetupFlagMapper(userFlags []string) error {
 func (getCmd *GetCommand) GetValidFlags() ([]fp.FlagInfo, error) {
 	var ret []fp.FlagInfo
 
-	maxIntDigits := viper.GetInt("MAX_INT_DIGITS")
+	maxIntDigits := getCmd.appCtx.intDigits
 
-	lenMax := viper.GetInt("MAX_LENGTH")
+	lenMax := getCmd.appCtx.maxLen
 
 	f8 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
 	f2 := fp.FlagInfo{FlagName: string(itmId), FlagType: fp.Integer, MaxLen: maxIntDigits}
