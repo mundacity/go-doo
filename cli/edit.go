@@ -14,8 +14,6 @@ import (
 	"github.com/mundacity/go-doo/domain"
 )
 
-var getNewVals bool
-
 type queryType int
 
 const (
@@ -27,6 +25,7 @@ type EditCommand struct {
 	appCtx        *AppContext
 	parser        fp.FlagParser
 	fs            *flag.FlagSet
+	getNewVals    bool
 	id            int
 	body          string
 	childOf       int
@@ -130,7 +129,7 @@ func (eCmd *EditCommand) ParseFlags() error {
 func (eCmd *EditCommand) GenerateTodoItem() (domain.TodoItem, error) {
 	ret := domain.NewTodoItem(domain.WithPriorityLevel(domain.None))
 
-	if !getNewVals {
+	if !eCmd.getNewVals {
 		ret.Id = eCmd.id
 		if eCmd.childOf != 0 {
 			ret.ParentId = eCmd.childOf
@@ -213,9 +212,9 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 	}
 
 	toEdit, _ := eCmd.GenerateTodoItem()
-	getNewVals = true
+	eCmd.getNewVals = true
 	newVals, _ := eCmd.GenerateTodoItem()
-	getNewVals = false
+	eCmd.getNewVals = false
 
 	num, err := eCmd.appCtx.todoRepo.UpdateWhere(srchQryLst, edtQryLst, toEdit, newVals)
 	if err != nil {

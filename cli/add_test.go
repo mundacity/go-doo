@@ -11,7 +11,7 @@ import (
 	"github.com/mundacity/go-doo/util"
 )
 
-type test_case struct {
+type add_test_case struct {
 	args     []string
 	expected domain.TodoItem
 	err      error
@@ -19,8 +19,8 @@ type test_case struct {
 	envVal   int
 }
 
-func _getTestCases() []test_case {
-	return []test_case{{
+func _getTestCases() []add_test_case {
+	return []add_test_case{{
 		args:     []string{"-b", "this", "is", "a", "body", "-", "with", "a", "dash"},
 		expected: domain.TodoItem{Body: "this is a body - with a dash", CreationDate: time.Now(), Priority: domain.None},
 		err:      nil,
@@ -69,8 +69,6 @@ func _getTagMap(input, delim string) map[string]struct{} {
 	return mp
 }
 
-// date base for testing: time.Date(2022, 03, 14, 0, 0, 0, 0, time.UTC)
-
 func TestItemGeneration(t *testing.T) {
 
 	tcs := _getTestCases()
@@ -81,7 +79,7 @@ func TestItemGeneration(t *testing.T) {
 	}
 }
 
-func _runAddTest(t *testing.T, tc test_case) {
+func _runAddTest(t *testing.T, tc add_test_case) {
 
 	//_quickTest(tc)
 
@@ -93,7 +91,7 @@ func _runAddTest(t *testing.T, tc test_case) {
 	addCmd.ParseFlags()
 	td, _ := addCmd.GenerateTodoItem()
 
-	same, msg := _compare(tc.expected, td)
+	same, msg := compareTestResults(tc.expected, td)
 
 	if same {
 		t.Logf(">>>>PASS: expected and got are equal")
@@ -103,7 +101,7 @@ func _runAddTest(t *testing.T, tc test_case) {
 
 }
 
-func _compare(expected, got domain.TodoItem) (bool, string) {
+func compareTestResults(expected, got domain.TodoItem) (bool, string) {
 
 	if expected.Body != got.Body {
 		return false, fmt.Sprintf("body doesn't match. Expected '%v', got '%v'", expected.Body, got.Body)
@@ -120,6 +118,9 @@ func _compare(expected, got domain.TodoItem) (bool, string) {
 	if len(expected.Tags) != len(got.Tags) {
 		return false, fmt.Sprintf("len doesn't match. Expected '%v', got '%v'", len(expected.Tags), len(got.Tags))
 	}
+	if expected.Id != got.Id {
+		return false, fmt.Sprintf("id doesn't match. Expected '%v', got '%v'", expected.Id, got.Id)
+	}
 
 	for s := range expected.Tags {
 
@@ -132,7 +133,7 @@ func _compare(expected, got domain.TodoItem) (bool, string) {
 	return true, ""
 }
 
-func _quickTest(tc test_case) {
+func _quickTest(tc add_test_case) {
 	RunApp(tc.args, os.Stdout)
 }
 
