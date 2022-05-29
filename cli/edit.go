@@ -232,24 +232,6 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 	return nil
 }
 
-func (eCmd *EditCommand) updateElements(itm *domain.TodoItem) {
-
-	if len(eCmd.newBody) > 0 {
-		if eCmd.appending {
-			eCmd.body += " " + eCmd.newBody
-		} else {
-			eCmd.body = eCmd.newBody
-		}
-	}
-
-	if len(eCmd.newTag) > 0 {
-		for t := range itm.Tags {
-			delete(itm.Tags, t) // clear out any stored in/after first stage
-		}
-		parseTagInput(itm, eCmd.newTag, eCmd.appCtx.tagDemlim)
-	}
-}
-
 func (eCmd *EditCommand) determineQueryType(qType queryType) ([]domain.GetQueryType, error) {
 	var ret []domain.GetQueryType
 
