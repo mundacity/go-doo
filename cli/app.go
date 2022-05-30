@@ -107,8 +107,10 @@ func (app *AppContext) config() {
 	viper.SetDefault("DATETIME_FORMAT", "2006-01-02")
 	viper.SetDefault("INSTANCE_TYPE", 0)
 
-	viper.SetConfigFile(".\\env")
+	viper.SetConfigName("env")
 	viper.SetConfigType("env")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("C:\\fe\\")
 	viper.ReadInConfig()
 
 	app.maxLen = viper.GetInt("MAX_LENGTH")
