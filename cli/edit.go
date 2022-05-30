@@ -144,7 +144,6 @@ func (eCmd *EditCommand) GenerateTodoItem() (domain.TodoItem, error) {
 			ret.IsComplete = true
 		}
 	} else {
-		ret.Id = eCmd.id
 		if eCmd.newParent != 0 {
 			ret.ParentId = eCmd.newParent
 			ret.IsChild = true

@@ -48,7 +48,7 @@ func TestEdit(t *testing.T) {
 
 func _runEditTest(t *testing.T, tc edit_test_case) {
 
-	//	_quickTest(tc)
+	//RunApp(tc.args, os.Stdout)
 
 	app, _ := Init(tc.args)
 	eCmd, _ := NewEditCommand(app)

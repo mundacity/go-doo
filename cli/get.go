@@ -156,32 +156,32 @@ func (gCmd *GetCommand) Run(w io.Writer) error {
 	var itms []domain.TodoItem
 	var err error
 
-	if gCmd.getAll {
-		itms, err = gCmd.appCtx.todoRepo.GetAll()
-		if err != nil {
-			return err
-		}
-		msg := gCmd.getFunc(itms)
-		w.Write([]byte(msg()))
-		return nil
-	}
+	// if gCmd.getAll {
+	// 	itms, err = gCmd.appCtx.todoRepo.GetAll()
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	msg := gCmd.getFunc(itms)
+	// 	w.Write([]byte(msg()))
+	// 	return nil
+	// }
 
 	qList, err := gCmd.determineQueryType()
 	if err != nil {
 		return err
 	}
 
-	if len(qList) == 0 {
-		itms, err = gCmd.appCtx.todoRepo.GetAll()
-		if err != nil {
-			return err
-		}
-	} else {
-		itms, err = gCmd.appCtx.todoRepo.GetWhere(qList, input)
-		if err != nil {
-			return err
-		}
+	// if len(qList) == 0 {
+	// 	itms, err = gCmd.appCtx.todoRepo.GetAll()
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// } else {
+	itms, err = gCmd.appCtx.todoRepo.GetWhere(qList, input)
+	if err != nil {
+		return err
 	}
+	//}
 
 	msg := gCmd.getFunc(itms)
 	w.Write([]byte(msg()))
@@ -251,6 +251,8 @@ func (gCmd *GetCommand) determineQueryType() ([]domain.UserQueryElement, error) 
 	if gCmd.complete {
 		ret = append(ret, domain.ByCompletion)
 	}
+
+	//gCmd.getAll = !gCmd.getAll
 
 	return ret, nil
 }
