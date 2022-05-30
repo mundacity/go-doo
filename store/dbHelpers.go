@@ -115,7 +115,7 @@ func getBaseUpdateSql(db DbType, tbl table) string {
 	case tags:
 		return "update tags set "
 	case all:
-		return "update items i inner join tags t on i.id = t.itemId"
+		return "update items i inner join tags t on i.id = t.itemId set "
 	}
 	return ""
 }

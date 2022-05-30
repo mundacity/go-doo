@@ -61,7 +61,7 @@ func (getCmd *GetCommand) SetupFlagMapper(userFlags []string) error {
 		return err
 	}
 
-	getCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(getNowString(), getCmd.appCtx.DateLayout))
+	getCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(_getNowString(), getCmd.appCtx.DateLayout))
 
 	err = getCmd.parser.CheckInitialisation()
 	if err != nil {
