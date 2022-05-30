@@ -184,11 +184,11 @@ func buildUpdatePairs(input []where_map_entry, sqlBase string, options []domain.
 		}
 	}
 
-	comma := ""
+	comma := ", "
 	var vals []any
 	for i, itm := range input {
-		if i > 0 {
-			comma = ", "
+		if i == len(input)-1 {
+			comma = " "
 		}
 
 		if itm.columnName == "body" {
