@@ -206,8 +206,8 @@ func (gCmd *GetCommand) getFunc(itms []domain.TodoItem) func() string {
 	return f
 }
 
-func (gCmd *GetCommand) determineQueryType() ([]domain.GetQueryType, error) {
-	var ret []domain.GetQueryType
+func (gCmd *GetCommand) determineQueryType() ([]domain.UserQueryElement, error) {
+	var ret []domain.UserQueryElement
 
 	// by id numbers
 	if gCmd.id != 0 {

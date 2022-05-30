@@ -8,7 +8,7 @@ import (
 	"github.com/mundacity/go-doo/util"
 )
 
-func NewRepo(conn string, dbKind DbType, dateLayout string) *Repo {
+func NewRepo(conn string, dbKind domain.DbType, dateLayout string) *Repo {
 	Db, _ := Init(conn, dbKind)
 	r := Repo{db: Db, dl: dateLayout, kind: dbKind}
 	return &r
@@ -28,7 +28,7 @@ func (r *Repo) Add(itm *domain.TodoItem) (int64, error) {
 	}
 	defer tx.Rollback()
 
-	sql := getSql(add, r.kind, items)
+	sql := getSql(domain.Add, r.kind, items)
 
 	res, err := tx.Exec(sql, itm.ParentId, util.StringFromDate(itm.CreationDate), d, itm.Body)
 	if err != nil {
@@ -41,7 +41,7 @@ func (r *Repo) Add(itm *domain.TodoItem) (int64, error) {
 	}
 
 	for t := range itm.Tags {
-		sql := getSql(add, r.kind, tags)
+		sql := getSql(domain.Add, r.kind, tags)
 		_, err := tx.Exec(sql, id, t)
 		if err != nil {
 			return 0, err
@@ -59,7 +59,7 @@ func (r *Repo) GetAll() ([]domain.TodoItem, error) {
 
 	mp := make(map[int]*domain.TodoItem)
 
-	sql := getSql(get, r.kind, all)
+	sql := getSql(domain.Get, r.kind, all)
 
 	all, err := r.db.Query(sql)
 	if err != nil {
@@ -73,9 +73,9 @@ func (r *Repo) GetAll() ([]domain.TodoItem, error) {
 	return ret, nil
 }
 
-func (r *Repo) UpdateWhere(srchOptions, edtOptions []domain.GetQueryType, selector, newVals domain.TodoItem) (int, error) {
+func (r *Repo) UpdateWhere(srchOptions, edtOptions []domain.UserQueryElement, selector, newVals domain.TodoItem) (int, error) {
 
-	itmSql := getSql(update, r.kind, items)
+	itmSql := getSql(domain.Update, r.kind, items)
 	//tagSql := "update tags set " // will need to do these separately
 
 	itmSql, data := r.assembleUpdateData(itmSql, srchOptions, edtOptions, selector, newVals)
@@ -106,7 +106,7 @@ func (r *Repo) UpdateWhere(srchOptions, edtOptions []domain.GetQueryType, select
 func (r *Repo) GetById(id int) (domain.TodoItem, error) {
 	var dud domain.TodoItem
 	mp := make(map[int]*domain.TodoItem)
-	sql := getSql(get, r.kind, all) + " where i.id = ?" //  TODO: move this... better would be to get rid of id-specific method & just use GetWhere()
+	sql := getSql(domain.Get, r.kind, all) + " where i.id = ?" //  TODO: move this... better would be to get rid of id-specific method & just use GetWhere()
 
 	all, err := r.db.Query(sql, id)
 	if err != nil {
@@ -121,7 +121,7 @@ func (r *Repo) GetById(id int) (domain.TodoItem, error) {
 	return lst[0], nil
 }
 
-func (sr *Repo) GetWhere(options []domain.GetQueryType, input domain.TodoItem) ([]domain.TodoItem, error) {
+func (sr *Repo) GetWhere(options []domain.UserQueryElement, input domain.TodoItem) ([]domain.TodoItem, error) {
 
 	if len(options) == 0 {
 		return sr.GetAll()
@@ -129,7 +129,7 @@ func (sr *Repo) GetWhere(options []domain.GetQueryType, input domain.TodoItem) (
 
 	mp := make(map[int]*domain.TodoItem)
 	whereLst := getWhereList(options, input)
-	sql, vals := buildAndWhere(whereLst, getSql(get, sr.kind, all)+" where ")
+	sql, vals := buildAndWhere(whereLst, getSql(domain.Get, sr.kind, all)+" where ")
 
 	all, err := sr.db.Query(sql, vals...)
 	if err != nil {
@@ -143,7 +143,7 @@ func (sr *Repo) GetWhere(options []domain.GetQueryType, input domain.TodoItem) (
 	return ret, nil
 }
 
-func getWhereList(options []domain.GetQueryType, input domain.TodoItem) []where_map_entry {
+func getWhereList(options []domain.UserQueryElement, input domain.TodoItem) []where_map_entry {
 	var lst []where_map_entry
 
 	for _, opt := range options {
@@ -159,7 +159,7 @@ func getWhereList(options []domain.GetQueryType, input domain.TodoItem) []where_
 	return lst
 }
 
-func getColAndVal(q domain.GetQueryType, input domain.TodoItem) (string, any) {
+func getColAndVal(q domain.UserQueryElement, input domain.TodoItem) (string, any) {
 	switch q {
 	case domain.ById:
 		return "id", input.Id

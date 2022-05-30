@@ -133,7 +133,7 @@ func compareTestResults(expected, got domain.TodoItem) (bool, string) {
 	return true, ""
 }
 
-func _quickTest(tc add_test_case) {
+func quickTest(tc add_test_case) {
 	RunApp(tc.args, os.Stdout)
 }
 

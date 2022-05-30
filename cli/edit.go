@@ -14,13 +14,6 @@ import (
 	"github.com/mundacity/go-doo/domain"
 )
 
-type queryType int
-
-const (
-	search queryType = iota
-	update
-)
-
 type EditCommand struct {
 	appCtx        *AppContext
 	parser        fp.FlagParser
@@ -202,11 +195,11 @@ func (eCmd *EditCommand) getAdditionalInput() error {
 func (eCmd *EditCommand) Run(w io.Writer) error {
 
 	eCmd.getAdditionalInput()
-	srchQryLst, err := eCmd.determineQueryType(search)
+	srchQryLst, err := eCmd.determineQueryType(domain.Get)
 	if err != nil {
 		return err
 	}
-	edtQryLst, err := eCmd.determineQueryType(update)
+	edtQryLst, err := eCmd.determineQueryType(domain.Update)
 	if err != nil {
 		return err
 	}
@@ -231,11 +224,11 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 	return nil
 }
 
-func (eCmd *EditCommand) determineQueryType(qType queryType) ([]domain.GetQueryType, error) {
-	var ret []domain.GetQueryType
+func (eCmd *EditCommand) determineQueryType(qType domain.QueryType) ([]domain.UserQueryElement, error) {
+	var ret []domain.UserQueryElement
 
 	switch qType {
-	case search:
+	case domain.Get:
 		// by id numbers
 		if eCmd.id != 0 {
 			ret = append(ret, domain.ById)
@@ -268,7 +261,7 @@ func (eCmd *EditCommand) determineQueryType(qType queryType) ([]domain.GetQueryT
 		if eCmd.complete {
 			ret = append(ret, domain.ByCompletion)
 		}
-	case update:
+	case domain.Update:
 		if eCmd.newParent != 0 {
 			ret = append(ret, domain.ByParentId)
 		}

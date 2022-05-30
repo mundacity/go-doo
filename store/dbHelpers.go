@@ -8,21 +8,6 @@ import (
 	"github.com/mundacity/go-doo/domain"
 )
 
-type DbType string
-
-const (
-	Sqlite DbType = "sqlite3"
-)
-
-type queryType int
-
-const (
-	add queryType = iota
-	get
-	update
-	delete
-)
-
 type table int
 
 const (
@@ -36,7 +21,7 @@ const (
 type Repo struct {
 	db   *sql.DB
 	dl   string
-	kind DbType
+	kind domain.DbType
 }
 
 // Helps when scanning
@@ -72,22 +57,22 @@ func (r *Repo) tempConversion(tmp temp_item) domain.TodoItem {
 	return ret
 }
 
-func getSql(qType queryType, dbKind DbType, tbl table) string {
+func getSql(qType domain.QueryType, dbKind domain.DbType, tbl table) string {
 	switch qType {
-	case add:
+	case domain.Add:
 		return getInsertSql(dbKind, tbl)
-	case get:
+	case domain.Get:
 		return getSelectSql(dbKind, tbl)
-	case update:
+	case domain.Update:
 		return getBaseUpdateSql(dbKind, tbl)
 	default:
 		return ""
 	}
 }
 
-func getInsertSql(db DbType, tbl table) string {
+func getInsertSql(db domain.DbType, tbl table) string {
 	switch db {
-	case Sqlite:
+	case domain.Sqlite:
 		if tbl == items {
 			return "insert into items (parentId, creationDate, deadline, body) values (?, ?, ?, ?)"
 		} else if tbl == tags {
@@ -97,10 +82,10 @@ func getInsertSql(db DbType, tbl table) string {
 	return ""
 }
 
-func getSelectSql(db DbType, tbl table) string {
+func getSelectSql(db domain.DbType, tbl table) string {
 	// table doesn't matter atm
 	switch db {
-	case Sqlite:
+	case domain.Sqlite:
 		return "select i.id, parentId, creationDate, deadline, body, isComplete, ifnull(tag, '') tag " +
 			"from items i left join tags t " +
 			"on i.id = t.itemId"
@@ -108,7 +93,7 @@ func getSelectSql(db DbType, tbl table) string {
 	return ""
 }
 
-func getBaseUpdateSql(db DbType, tbl table) string {
+func getBaseUpdateSql(db domain.DbType, tbl table) string {
 	switch tbl {
 	case items:
 		return "update items set "
@@ -153,7 +138,7 @@ func (sr *Repo) processQuery(all *sql.Rows, mp map[int]*domain.TodoItem) ([]doma
 }
 
 func (r *Repo) assembleUpdateData(sql string,
-	srchOptions, edtOptions []domain.GetQueryType,
+	srchOptions, edtOptions []domain.UserQueryElement,
 	selector, newVals domain.TodoItem) (string, []any) {
 
 	updateLst := getWhereList(edtOptions, newVals)  // to generate 'a-h' in 'update items set a=b, c=d, e=f, g=h where x'
@@ -186,7 +171,7 @@ func buildAndWhere(input []where_map_entry, sqlBase string) (string, []any) {
 	return sqlBase, vals
 }
 
-func buildUpdatePairs(input []where_map_entry, sqlBase string, options []domain.GetQueryType) (string, []any) {
+func buildUpdatePairs(input []where_map_entry, sqlBase string, options []domain.UserQueryElement) (string, []any) {
 	var appending, replacing bool
 
 	for _, o := range options {

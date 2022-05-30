@@ -9,10 +9,19 @@ type ITodoCollection interface {
 	GetNext() (*TodoItem, error)
 }
 
-type GetQueryType int
+type QueryType int
 
 const (
-	ById GetQueryType = iota
+	Add QueryType = iota
+	Get
+	Update
+	Delete
+)
+
+type UserQueryElement int
+
+const (
+	ById UserQueryElement = iota
 	ByChildId
 	ByParentId
 	ByTag
@@ -30,8 +39,8 @@ const (
 type IRepository interface {
 	GetAll() ([]TodoItem, error)
 	GetById(id int) (TodoItem, error)
-	GetWhere(options []GetQueryType, input TodoItem) ([]TodoItem, error)
+	GetWhere(options []UserQueryElement, input TodoItem) ([]TodoItem, error)
 	Add(itm *TodoItem) (int64, error) // num of items stored/affected
-	UpdateWhere(srchOptions, edtOptions []GetQueryType, selector, newVals TodoItem) (int, error)
+	UpdateWhere(srchOptions, edtOptions []UserQueryElement, selector, newVals TodoItem) (int, error)
 	// Delete(items ...int) error
 }

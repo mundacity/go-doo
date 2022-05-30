@@ -7,8 +7,7 @@ import (
 	"net/http"
 
 	"github.com/mundacity/go-doo/domain"
-	"github.com/mundacity/go-doo/services"
-	"github.com/mundacity/go-doo/store"
+
 	"github.com/spf13/viper"
 )
 
@@ -125,7 +124,7 @@ func (app *AppContext) config() {
 	}
 
 	app.DateLayout = viper.GetString("DATETIME_FORMAT")
-	app.todoRepo = services.GetRepo(store.Sqlite, app.conn, app.DateLayout)
+	app.todoRepo = GetRepo(domain.Sqlite, app.conn, app.DateLayout)
 }
 
 func _getBasicCommand(ctx *AppContext) (ICommand, error) {
