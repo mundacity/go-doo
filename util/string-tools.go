@@ -31,15 +31,3 @@ func StringFromDate(d time.Time) string {
 
 	return final
 }
-
-func EscapeQuotes(input string) string {
-	ret := strings.ReplaceAll(input, "\"", "``")
-	ret = strings.ReplaceAll(ret, "'", "`")
-	return ret
-}
-
-func UnEscapeQuotes(input string) string {
-	ret := strings.ReplaceAll(input, "``", "\"")
-	ret = strings.ReplaceAll(ret, "`", "'")
-	return ret
-}
