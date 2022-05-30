@@ -200,7 +200,7 @@ func (gCmd *GetCommand) getFunc(itms []domain.TodoItem) func() string {
 		if c == 0 || c > 1 {
 			s = "s"
 		}
-		str += fmt.Sprintf("--> Returned %v item%v", c, s)
+		str += fmt.Sprintf("--> Returned %v item%v\n", c, s)
 		return str
 	}
 	return f

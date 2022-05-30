@@ -218,7 +218,7 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 	if num == 0 || num > 1 {
 		s = "s"
 	}
-	msg := fmt.Sprintf("--> Edited %v item%v", num, s)
+	msg := fmt.Sprintf("--> Edited %v item%v\n", num, s)
 	w.Write([]byte(msg))
 
 	return nil
