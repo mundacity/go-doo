@@ -251,12 +251,6 @@ func (eCmd *EditCommand) determineQueryType(qType domain.QueryType) ([]domain.Us
 		if eCmd.creationDate != "" {
 			ret = append(ret, domain.ByCreationDate)
 		}
-		if eCmd.appending {
-			ret = append(ret, domain.ByAppending)
-		}
-		if eCmd.replacing {
-			ret = append(ret, domain.ByReplacement)
-		}
 		if eCmd.complete {
 			ret = append(ret, domain.ByCompletion)
 		}

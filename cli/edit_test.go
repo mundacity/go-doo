@@ -49,7 +49,7 @@ func _getTestCasesForEditing() []edit_item_generation_test_case {
 	}}
 }
 
-func getQueryBuildTestCases() []edit_query_build_test_case {
+func getEditQueryBuildTestCases() []edit_query_build_test_case {
 	return []edit_query_build_test_case{{
 		input:      EditCommand{id: 4, newBody: "seems to be working"},
 		name:       "id and new body",
@@ -64,7 +64,55 @@ func getQueryBuildTestCases() []edit_query_build_test_case {
 		expEdtLst:  []domain.UserQueryElement{domain.ByCompletion},
 		expSrchItm: domain.TodoItem{Body: "edit command"},
 		expEdtItm:  domain.TodoItem{IsComplete: true},
+	}, {
+		input:      EditCommand{id: 15, replacing: true, newBody: "cleaned out by edit command"},
+		name:       "id - new body replaced",
+		expSrchLst: []domain.UserQueryElement{domain.ById},
+		expEdtLst:  []domain.UserQueryElement{domain.ByBody, domain.ByReplacement},
+		expSrchItm: domain.TodoItem{Id: 15},
+		expEdtItm:  domain.TodoItem{Body: "cleaned out by edit command"},
+	}, {
+		input:      EditCommand{body: "multiple", appending: true, newBody: "cleaned out by edit command"},
+		name:       "body - new body appended",
+		expSrchLst: []domain.UserQueryElement{domain.ByBody},
+		expEdtLst:  []domain.UserQueryElement{domain.ByBody, domain.ByAppending},
+		expSrchItm: domain.TodoItem{Body: "multiple"},
+		expEdtItm:  domain.TodoItem{Body: "cleaned out by edit command"},
+	}, {
+		input:      EditCommand{body: "multiple", tagInput: "dev", childOf: 4, appending: true, newBody: "cleaned out by edit command", newlyComplete: true},
+		name:       "body, tag, child - new body appended marked complete",
+		expSrchLst: []domain.UserQueryElement{domain.ByBody, domain.ByTag, domain.ByParentId},
+		expEdtLst:  []domain.UserQueryElement{domain.ByBody, domain.ByAppending, domain.ByCompletion},
+		expSrchItm: *getTodoItm([]any{nil, 4, "multiple", "dev", nil, false}),
+		expEdtItm:  *getTodoItm([]any{nil, nil, "cleaned out by edit command", nil, nil, true}),
 	}}
+}
+
+// ***TESTING ONLY*** order significant: id, parentid, body, tag, deadline, isComplete
+func getTodoItm(data []any) *domain.TodoItem {
+
+	// hideous - just for testing!
+	itm := domain.NewTodoItem(domain.WithPriorityLevel(domain.None))
+
+	if data[0] != nil {
+		itm.Id = data[0].(int)
+	}
+	if data[1] != nil {
+		itm.ParentId = data[1].(int)
+		itm.IsChild = true
+	}
+	if data[2] != nil {
+		itm.Body = data[2].(string)
+	}
+	if data[3] != nil && len(data[3].(string)) > 0 {
+		itm.Tags[data[3].(string)] = struct{}{}
+	}
+	if data[4] != nil {
+		itm.Deadline = data[4].(time.Time)
+	}
+	itm.IsComplete = data[5].(bool)
+
+	return itm
 }
 
 func TestEditFlargInput(t *testing.T) {
@@ -76,8 +124,8 @@ func TestEditFlargInput(t *testing.T) {
 	}
 }
 
-func TestQueryBuilding(t *testing.T) {
-	tcs := getQueryBuildTestCases()
+func TestEditQueryBuilding(t *testing.T) {
+	tcs := getEditQueryBuildTestCases()
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			runQueryBuildTests(t, tc)
