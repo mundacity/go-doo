@@ -252,12 +252,12 @@ func compareTdoItms(itm1, itm2 domain.TodoItem) (bool, string) {
 	}
 
 	var itm1Tags, itm2Tags []string
-	for t, _ := range itm1.Tags {
+	for t := range itm1.Tags {
 		itm1Tags = append(itm1Tags, t)
 	}
 	sort.Strings(itm1Tags)
 
-	for t, _ := range itm2.Tags {
+	for t := range itm2.Tags {
 		itm2Tags = append(itm2Tags, t)
 	}
 	sort.Strings(itm2Tags)

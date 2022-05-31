@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"github.com/mundacity/go-doo/domain"
 )
 
 type get_test_case struct {
@@ -11,6 +13,13 @@ type get_test_case struct {
 	expected GetCommand
 	err      error
 	name     string
+}
+
+type get_query_build_test_case struct {
+	input      GetCommand
+	name       string
+	expSrchLst []domain.UserQueryElement
+	expSrchItm domain.TodoItem
 }
 
 func _getTestCasesForGetting() []get_test_case {
@@ -29,6 +38,35 @@ func _getTestCasesForGetting() []get_test_case {
 		expected: GetCommand{childOf: 9, deadlineDate: "."},
 		err:      nil,
 		name:     "get by child id",
+	}}
+}
+
+func getGetQueryBuildTestCases() []get_query_build_test_case {
+	return []get_query_build_test_case{{
+		input:      GetCommand{getAll: true},
+		name:       "get all",
+		expSrchLst: []domain.UserQueryElement{},
+		expSrchItm: *getTodoItm([]any{nil, nil, nil, nil, nil, false}),
+	}, {
+		input:      GetCommand{bodyPhrase: "edit command", childOf: 99, tagInput: "test"},
+		name:       "body child tag",
+		expSrchLst: []domain.UserQueryElement{domain.ByBody, domain.ByParentId, domain.ByTag},
+		expSrchItm: *getTodoItm([]any{nil, 99, "edit command", "test", nil, false}),
+	}, {
+		input:      GetCommand{id: 15},
+		name:       "id",
+		expSrchLst: []domain.UserQueryElement{domain.ById},
+		expSrchItm: *getTodoItm([]any{15, nil, nil, nil, nil, false}),
+	}, {
+		input:      GetCommand{bodyPhrase: "multiple", complete: true, childOf: 8},
+		name:       "body complete child",
+		expSrchLst: []domain.UserQueryElement{domain.ByBody, domain.ByCompletion, domain.ByParentId},
+		expSrchItm: *getTodoItm([]any{nil, 8, "multiple", nil, nil, true}),
+	}, {
+		input:      GetCommand{complete: true},
+		name:       "completion",
+		expSrchLst: []domain.UserQueryElement{domain.ByCompletion},
+		expSrchItm: *getTodoItm([]any{nil, nil, nil, nil, nil, true}),
 	}}
 }
 
@@ -59,6 +97,34 @@ func _runGetTest(t *testing.T, tc get_test_case) {
 		t.Logf(">>>>PASS: expected and got are equal")
 	} else {
 		t.Errorf(">>>>FAIL: %v", msg)
+	}
+}
+
+func TestGetQueryBuilding(t *testing.T) {
+	tcs := getGetQueryBuildTestCases()
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			runGetQueryBuildTests(t, tc)
+		})
+	}
+}
+
+func runGetQueryBuildTests(t *testing.T, tc get_query_build_test_case) {
+	gotSrchLst, _ := tc.input.determineQueryType()
+	gotSrchItm, _ := tc.input.GenerateTodoItem()
+
+	same, msg := compareTdoItms(tc.expSrchItm, gotSrchItm)
+	if same {
+		t.Logf(">>>>PASS (srchItm): expected & got are equal")
+	} else {
+		t.Errorf(">>>>FAIL (srchItm): expected & got are not equal --> '%v'", msg)
+	}
+
+	same, msg = compareQueryElemsLists(tc.expSrchLst, gotSrchLst)
+	if same {
+		t.Logf(">>>>PASS (srchLst): expected & got are equal")
+	} else {
+		t.Errorf(">>>>FAIL (srchLst): expected & got are not equal --> '%v'", msg)
 	}
 }
 
