@@ -56,6 +56,13 @@ func _getTestCasesForEditing() []edit_item_generation_test_case {
 
 func getEditQueryBuildTestCases() []edit_query_build_test_case {
 	return []edit_query_build_test_case{{
+		input:      EditCommand{id: 3, newParent: 1},
+		name:       "id and new parent",
+		expSrchLst: []domain.UserQueryElement{domain.ById},
+		expEdtLst:  []domain.UserQueryElement{domain.ByParentId},
+		expSrchItm: *getTodoItm([]any{3, nil, nil, nil, nil, false}),
+		expEdtItm:  *getTodoItm([]any{nil, 1, nil, nil, nil, false}),
+	}, {
 		input:      EditCommand{id: 4, newBody: "seems to be working"},
 		name:       "id and new body",
 		expSrchLst: []domain.UserQueryElement{domain.ById},
