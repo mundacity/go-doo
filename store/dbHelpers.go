@@ -200,6 +200,10 @@ func buildUpdatePairs(input []where_map_entry, sqlBase string, options []domain.
 			vals = append(vals, itm.colValue)
 			continue
 		}
+		if itm.columnName == "isComplete" {
+			sqlBase += fmt.Sprintf("%v = not %v%v", itm.columnName, itm.columnName, comma)
+			continue
+		}
 
 		sqlBase += fmt.Sprintf("%v = ?%v", itm.columnName, comma)
 		vals = append(vals, itm.colValue)
