@@ -27,6 +27,11 @@ type edit_query_build_test_case struct {
 
 func _getTestCasesForEditing() []edit_item_generation_test_case {
 	return []edit_item_generation_test_case{{
+		args:     []string{"-i", "3", "-F"},
+		expected: EditCommand{id: 3, newlyComplete: true},
+		err:      nil,
+		name:     "find by id toggle completion",
+	}, {
 		args:     []string{"-i", "4", "-B", "seems to be working"},
 		expected: EditCommand{id: 4, newBody: "seems to be working"},
 		err:      nil,
