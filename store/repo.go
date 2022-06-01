@@ -123,9 +123,8 @@ func (r *Repo) GetById(id int) (domain.TodoItem, error) {
 
 func (sr *Repo) GetWhere(options []domain.UserQueryElement, input domain.TodoItem) ([]domain.TodoItem, error) {
 
-	if len(options) == 0 {
-		return sr.GetAll()
-	}
+	// len(options) always > 0
+	// 	--> domain.ByCompletion added in GetCommand if otherwise empty
 
 	mp := make(map[int]*domain.TodoItem)
 	whereLst := getWhereList(options, input)
