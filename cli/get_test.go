@@ -45,8 +45,18 @@ func getGetQueryBuildTestCases() []get_query_build_test_case {
 	return []get_query_build_test_case{{
 		input:      GetCommand{getAll: true},
 		name:       "get all",
+		expSrchLst: []domain.UserQueryElement{},
+		expSrchItm: *getTodoItm([]any{nil, nil, nil, nil, nil, false}),
+	}, {
+		input:      GetCommand{getAll: true, toggleComplete: true},
+		name:       "get all incomplete",
 		expSrchLst: []domain.UserQueryElement{domain.ByCompletion},
 		expSrchItm: *getTodoItm([]any{nil, nil, nil, nil, nil, false}),
+	}, {
+		input:      GetCommand{getAll: true, complete: true},
+		name:       "get all complete",
+		expSrchLst: []domain.UserQueryElement{domain.ByCompletion},
+		expSrchItm: *getTodoItm([]any{nil, nil, nil, nil, nil, true}),
 	}, {
 		input:      GetCommand{bodyPhrase: "edit command", childOf: 99, tagInput: "test"},
 		name:       "body child tag",

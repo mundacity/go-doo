@@ -13,19 +13,20 @@ import (
 )
 
 type GetCommand struct {
-	appCtx       *AppContext
-	parser       fp.FlagParser
-	fs           *flag.FlagSet
-	id           int
-	next         bool   // default to priority, but can be changed to date with -d flag
-	tagInput     string // tags with delimeter set by environment variable
-	bodyPhrase   string // key phrase within body
-	childOf      int    // child of the int argument
-	parentOf     int    // parent of the int argument
-	deadlineDate string
-	creationDate string
-	getAll       bool
-	complete     bool
+	appCtx         *AppContext
+	parser         fp.FlagParser
+	fs             *flag.FlagSet
+	id             int
+	next           bool   // default to priority, but can be changed to date with -d flag
+	tagInput       string // tags with delimeter set by environment variable
+	bodyPhrase     string // key phrase within body
+	childOf        int    // child of the int argument
+	parentOf       int    // parent of the int argument
+	deadlineDate   string
+	creationDate   string
+	getAll         bool
+	complete       bool
+	toggleComplete bool
 }
 
 func NewGetCommand(ctx *AppContext) (*GetCommand, error) {
@@ -47,8 +48,9 @@ func NewGetCommand(ctx *AppContext) (*GetCommand, error) {
 
 	getCmd.fs.IntVar(&getCmd.childOf, strings.Trim(string(child), "-"), 0, "search based on parent Id; requested item is child of provided parent id")
 	getCmd.fs.IntVar(&getCmd.parentOf, strings.Trim(string(parent), "-"), 0, "search based on child Id; requested item is parent of provided child id")
-	getCmd.fs.BoolVar(&getCmd.getAll, strings.Trim(string(all), "-"), false, "get all incomplete items")
+	getCmd.fs.BoolVar(&getCmd.getAll, strings.Trim(string(all), "-"), false, "get all items")
 	getCmd.fs.BoolVar(&getCmd.complete, strings.Trim(string(finished), "-"), false, "search for completed items")
+	getCmd.fs.BoolVar(&getCmd.toggleComplete, strings.Trim(string(markComplete), "-"), false, "search for unfinished items")
 
 	err := getCmd.SetupFlagMapper(ctx.args)
 
@@ -88,8 +90,9 @@ func (getCmd *GetCommand) GetValidFlags() ([]fp.FlagInfo, error) {
 	f9 := fp.FlagInfo{FlagName: string(creation), FlagType: fp.DateTime, MaxLen: 20}
 	f10 := fp.FlagInfo{FlagName: string(all), FlagType: fp.Boolean, Standalone: true}
 	f11 := fp.FlagInfo{FlagName: string(finished), FlagType: fp.Boolean, Standalone: true}
+	f12 := fp.FlagInfo{FlagName: string(markComplete), FlagType: fp.Boolean, Standalone: true}
 
-	ret = append(ret, f8, f2, f3, f4, f5, f6, f7, f9, f10, f11)
+	ret = append(ret, f8, f2, f3, f4, f5, f6, f7, f9, f10, f11, f12)
 	return ret, nil
 }
 
@@ -132,6 +135,8 @@ func (gCmd *GetCommand) GenerateTodoItem() (domain.TodoItem, error) {
 	}
 	if gCmd.complete {
 		ret.IsComplete = true
+	} else if gCmd.toggleComplete {
+		ret.IsComplete = false
 	}
 	return *ret, nil
 }
@@ -230,11 +235,7 @@ func (gCmd *GetCommand) determineQueryType() ([]domain.UserQueryElement, error) 
 	if gCmd.creationDate != "" {
 		ret = append(ret, domain.ByCreationDate)
 	}
-	if gCmd.complete {
-		ret = append(ret, domain.ByCompletion)
-	}
-	if len(ret) == 0 {
-		// then it's get all, so add completion to return only unfinished items
+	if gCmd.complete || gCmd.toggleComplete {
 		ret = append(ret, domain.ByCompletion)
 	}
 
