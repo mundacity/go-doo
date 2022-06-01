@@ -47,7 +47,7 @@ func NewGetCommand(ctx *AppContext) (*GetCommand, error) {
 
 	getCmd.fs.IntVar(&getCmd.childOf, strings.Trim(string(child), "-"), 0, "search based on parent Id; requested item is child of provided parent id")
 	getCmd.fs.IntVar(&getCmd.parentOf, strings.Trim(string(parent), "-"), 0, "search based on child Id; requested item is parent of provided child id")
-	getCmd.fs.BoolVar(&getCmd.getAll, strings.Trim(string(all), "-"), false, "get all")
+	getCmd.fs.BoolVar(&getCmd.getAll, strings.Trim(string(all), "-"), false, "get all incomplete items")
 	getCmd.fs.BoolVar(&getCmd.complete, strings.Trim(string(finished), "-"), false, "search for completed items")
 
 	err := getCmd.SetupFlagMapper(ctx.args)
@@ -156,32 +156,15 @@ func (gCmd *GetCommand) Run(w io.Writer) error {
 	var itms []domain.TodoItem
 	var err error
 
-	// if gCmd.getAll {
-	// 	itms, err = gCmd.appCtx.todoRepo.GetAll()
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	msg := gCmd.getFunc(itms)
-	// 	w.Write([]byte(msg()))
-	// 	return nil
-	// }
-
 	qList, err := gCmd.determineQueryType()
 	if err != nil {
 		return err
 	}
 
-	// if len(qList) == 0 {
-	// 	itms, err = gCmd.appCtx.todoRepo.GetAll()
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// } else {
 	itms, err = gCmd.appCtx.todoRepo.GetWhere(qList, input)
 	if err != nil {
 		return err
 	}
-	//}
 
 	msg := gCmd.getFunc(itms)
 	w.Write([]byte(msg()))
@@ -247,12 +230,13 @@ func (gCmd *GetCommand) determineQueryType() ([]domain.UserQueryElement, error) 
 	if gCmd.creationDate != "" {
 		ret = append(ret, domain.ByCreationDate)
 	}
-
 	if gCmd.complete {
 		ret = append(ret, domain.ByCompletion)
 	}
-
-	//gCmd.getAll = !gCmd.getAll
+	if len(ret) == 0 {
+		// then it's get all, so add completion to return only unfinished items
+		ret = append(ret, domain.ByCompletion)
+	}
 
 	return ret, nil
 }
