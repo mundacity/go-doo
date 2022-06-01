@@ -55,24 +55,6 @@ func (r *Repo) Add(itm *domain.TodoItem) (int64, error) {
 	return id, nil
 }
 
-func (r *Repo) GetAll() ([]domain.TodoItem, error) {
-
-	mp := make(map[int]*domain.TodoItem)
-
-	sql := getSql(domain.Get, r.kind, all)
-
-	all, err := r.db.Query(sql)
-	if err != nil {
-		return nil, err
-	}
-
-	ret, err := r.processQuery(all, mp)
-	if err != nil {
-		return nil, err
-	}
-	return ret, nil
-}
-
 func (r *Repo) UpdateWhere(srchOptions, edtOptions []domain.UserQueryElement, selector, newVals domain.TodoItem) (int, error) {
 
 	itmSql := getSql(domain.Update, r.kind, items)
