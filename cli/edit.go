@@ -54,7 +54,7 @@ func NewEditCommand(ctx *AppContext) (*EditCommand, error) {
 	eCmd.fs.BoolVar(&eCmd.replacing, strings.Trim(string(replaceMode), "-"), false, "replace existing body/tag with new input")
 
 	// elements of item/s to edit
-	eCmd.fs.BoolVar(&eCmd.newlyComplete, strings.Trim(string(markComplete), "-"), false, "mark item/s complete")
+	eCmd.fs.BoolVar(&eCmd.newlyComplete, strings.Trim(string(markComplete), "-"), false, "toggle item completion")
 	eCmd.fs.StringVar(&eCmd.newTag, strings.Trim(string(changeTag), "-"), "", "change item/s tag")
 	eCmd.fs.StringVar(&eCmd.newDeadline, strings.Trim(string(changedDeadline), "-"), "", "change item/s deadline")
 	eCmd.fs.StringVar(&eCmd.newBody, strings.Trim(string(changeBody), "-"), "", "change item/s body")
@@ -122,7 +122,7 @@ func (eCmd *EditCommand) ParseFlags() error {
 func (eCmd *EditCommand) GenerateTodoItem() (domain.TodoItem, error) {
 	ret := domain.NewTodoItem(domain.WithPriorityLevel(domain.None))
 
-	if !eCmd.getNewVals {
+	if !eCmd.getNewVals { // searching
 		ret.Id = eCmd.id
 		if eCmd.childOf != 0 {
 			ret.ParentId = eCmd.childOf
@@ -140,9 +140,9 @@ func (eCmd *EditCommand) GenerateTodoItem() (domain.TodoItem, error) {
 		if eCmd.tagInput != "" {
 			ret.Tags[eCmd.tagInput] = struct{}{}
 		}
-		if eCmd.complete {
-			ret.IsComplete = true
-		}
+
+		ret.IsComplete = eCmd.complete
+
 	} else {
 		if eCmd.newParent != 0 {
 			ret.ParentId = eCmd.newParent
