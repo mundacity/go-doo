@@ -105,8 +105,9 @@ func (r *Repo) GetById(id int) (domain.TodoItem, error) {
 
 func (sr *Repo) GetWhere(options []domain.UserQueryElement, input domain.TodoItem) ([]domain.TodoItem, error) {
 
-	// len(options) always > 0
-	// 	--> domain.ByCompletion added in GetCommand if otherwise empty
+	if len(options) == 0 {
+		return sr.getAll()
+	}
 
 	mp := make(map[int]*domain.TodoItem)
 	whereLst := getWhereList(options, input)
@@ -122,6 +123,23 @@ func (sr *Repo) GetWhere(options []domain.UserQueryElement, input domain.TodoIte
 		return nil, err
 	}
 	return ret, nil
+}
+
+func (r *Repo) getAll() ([]domain.TodoItem, error) {
+	sql := getSql(domain.Get, r.kind, all)
+	mp := make(map[int]*domain.TodoItem)
+
+	all, err := r.db.Query(sql)
+	if err != nil {
+		return nil, err
+	}
+
+	ret, err := r.processQuery(all, mp)
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
+
 }
 
 func getWhereList(options []domain.UserQueryElement, input domain.TodoItem) []where_map_entry {
