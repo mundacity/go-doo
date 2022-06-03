@@ -2,8 +2,6 @@ module github.com/mundacity/go-doo
 
 go 1.18
 
-replace github.com/mundacity/flag-parser => ../flag-parser
-
 require (
 	github.com/mattn/go-sqlite3 v1.14.13
 	github.com/mundacity/flag-parser v0.0.0-20220525223641-c4ddecaa7b34
