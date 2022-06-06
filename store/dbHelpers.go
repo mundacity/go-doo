@@ -96,7 +96,7 @@ func getSelectSql(db domain.DbType, tbl table) string {
 func getBaseUpdateSql(db domain.DbType, tbl table) string {
 	switch tbl {
 	case items:
-		return "update items set "
+		return "update items as i set "
 	case tags:
 		return "update tags set "
 	case all:

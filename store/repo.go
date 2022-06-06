@@ -85,24 +85,6 @@ func (r *Repo) UpdateWhere(srchOptions, edtOptions []domain.UserQueryElement, se
 	return int(rows), nil
 }
 
-func (r *Repo) GetById(id int) (domain.TodoItem, error) {
-	var dud domain.TodoItem
-	mp := make(map[int]*domain.TodoItem)
-	sql := getSql(domain.Get, r.kind, all) + " where i.id = ?" //  TODO: move this... better would be to get rid of id-specific method & just use GetWhere()
-
-	all, err := r.db.Query(sql, id)
-	if err != nil {
-		return dud, err
-	}
-
-	lst, err := r.processQuery(all, mp)
-	if err != nil {
-		return dud, err
-	}
-
-	return lst[0], nil
-}
-
 func (sr *Repo) GetWhere(options []domain.UserQueryElement, input domain.TodoItem) ([]domain.TodoItem, error) {
 
 	if len(options) == 0 {
@@ -161,7 +143,7 @@ func getWhereList(options []domain.UserQueryElement, input domain.TodoItem) []wh
 func getColAndVal(q domain.UserQueryElement, input domain.TodoItem) (string, any) {
 	switch q {
 	case domain.ById:
-		return "id", input.Id
+		return "i.id", input.Id
 	case domain.ByChildId:
 		return "", input.ChildItems
 	case domain.ByParentId:

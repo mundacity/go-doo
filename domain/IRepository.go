@@ -37,7 +37,6 @@ const (
 
 // Defines methods used to interact with data storage
 type IRepository interface {
-	GetById(id int) (TodoItem, error)
 	GetWhere(options []UserQueryElement, input TodoItem) ([]TodoItem, error)
 	Add(itm *TodoItem) (int64, error) // num of items stored/affected
 	UpdateWhere(srchOptions, edtOptions []UserQueryElement, selector, newVals TodoItem) (int, error)

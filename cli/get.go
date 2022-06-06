@@ -144,19 +144,6 @@ func (gCmd *GetCommand) GenerateTodoItem() (domain.TodoItem, error) {
 func (gCmd *GetCommand) Run(w io.Writer) error {
 
 	input, _ := gCmd.GenerateTodoItem()
-	if input.Id != 0 {
-		itm, err := gCmd.appCtx.todoRepo.GetById(input.Id)
-		if err != nil {
-			return err
-		}
-
-		msg := fmt.Sprint(gCmd.buildOutput(itm))
-		_, err = w.Write([]byte(msg))
-		if err != nil {
-			return err
-		}
-		return nil
-	}
 
 	var itms []domain.TodoItem
 	var err error
