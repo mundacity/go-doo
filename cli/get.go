@@ -236,7 +236,11 @@ func (gCmd *GetCommand) buildOutput(itm domain.TodoItem) string {
 	if !itm.Deadline.IsZero() {
 		deadline = util.StringFromDate(itm.Deadline)
 	}
-	retStr += fmt.Sprintf("-- Id:\t%v\n\t- IsComplete:\t%v\n\t- ParentId:\t%v\n\t- Created:\t%v\n\t- Deadline:\t%v\n\t- Priority:\t%v\n\t- Tags:\t\t%v\n\t- Body:\t\t%v\n", itm.Id, itm.IsComplete, itm.ParentId, util.StringFromDate(itm.CreationDate), deadline, itm.Priority, tagOut, itm.Body)
+	done := Red + "Not done" + Reset
+	if itm.IsComplete {
+		done = Green + "Done" + Reset
+	}
+	retStr += fmt.Sprintf(Yellow+"-- Id:"+Reset+" [%v][%v]\n\t"+Cyan+"- Created:"+Reset+"  %v     "+Cyan+"ParentId:"+Reset+" %v     "+Cyan+"Priority:"+Reset+" %v\n\t"+Cyan+"- Deadline:"+Reset+" %v\n\t"+Cyan+"- Tags:"+Reset+"     %v\n\t"+Cyan+"- Body:"+Reset+"     %v\n", itm.Id, done, util.StringFromDate(itm.CreationDate), itm.ParentId, itm.Priority, deadline, tagOut, itm.Body)
 	return retStr
 }
 
@@ -249,5 +253,5 @@ func getTagOutput(mp map[string]struct{}) string {
 			ret += v + sep
 		}
 	}
-	return ret
+	return strings.TrimSuffix(ret, "; ")
 }
