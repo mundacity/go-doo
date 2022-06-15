@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 // Defines common behaviour of different collection types
 type ITodoCollection interface {
 	Add(itm TodoItem) error
@@ -35,10 +37,23 @@ const (
 	ByCompletion
 )
 
+type SetUpperDateBound func() (bool, time.Time)
+
+type UserQuery struct {
+	Elem       UserQueryElement
+	DateSetter SetUpperDateBound
+}
+
+// type DateRangeQueryInfo struct {
+// 	qType UserQueryElement
+// 	lower time.Time
+// 	upper time.Time
+// }
+
 // Defines methods used to interact with data storage
 type IRepository interface {
-	GetWhere(options []UserQueryElement, input TodoItem) ([]TodoItem, error)
+	GetWhere(options []UserQuery, input TodoItem) ([]TodoItem, error)
 	Add(itm *TodoItem) (int64, error) // num of items stored/affected
-	UpdateWhere(srchOptions, edtOptions []UserQueryElement, selector, newVals TodoItem) (int, error)
+	UpdateWhere(srchOptions, edtOptions []UserQuery, selector, newVals TodoItem) (int, error)
 	// Delete(items ...int) error
 }

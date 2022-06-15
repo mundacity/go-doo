@@ -201,7 +201,7 @@ func runQueryBuildTests(t *testing.T, tc edit_query_build_test_case) {
 	}
 }
 
-func compareQueryElemsLists(lst1, lst2 []domain.UserQueryElement) (bool, string) {
+func compareQueryElemsLists(lst1 []domain.UserQueryElement, lst2 []domain.UserQuery) (bool, string) {
 	if len(lst1) != len(lst2) {
 		return false, "list length differs"
 	}
@@ -214,7 +214,7 @@ func compareQueryElemsLists(lst1, lst2 []domain.UserQueryElement) (bool, string)
 	}
 
 	for _, itm := range lst2 {
-		lst2Ints = append(lst2Ints, int(itm))
+		lst2Ints = append(lst2Ints, int(itm.Elem))
 	}
 
 	sort.Ints(lst1Ints)

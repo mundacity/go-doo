@@ -83,11 +83,11 @@ func (getCmd *GetCommand) GetValidFlags() ([]fp.FlagInfo, error) {
 	f8 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
 	f2 := fp.FlagInfo{FlagName: string(itmId), FlagType: fp.Integer, MaxLen: maxIntDigits}
 	f3 := fp.FlagInfo{FlagName: string(next), FlagType: fp.Boolean, Standalone: true} // TODO: implement
-	f4 := fp.FlagInfo{FlagName: string(date), FlagType: fp.DateTime, MaxLen: 20}
+	f4 := fp.FlagInfo{FlagName: string(date), FlagType: fp.DateTime, MaxLen: 20, AllowDateRange: true}
 	f5 := fp.FlagInfo{FlagName: string(tag), FlagType: fp.Str, MaxLen: lenMax}
 	f6 := fp.FlagInfo{FlagName: string(child), FlagType: fp.Integer, MaxLen: maxIntDigits}
 	f7 := fp.FlagInfo{FlagName: string(parent), FlagType: fp.Integer, MaxLen: maxIntDigits}
-	f9 := fp.FlagInfo{FlagName: string(creation), FlagType: fp.DateTime, MaxLen: 20}
+	f9 := fp.FlagInfo{FlagName: string(creation), FlagType: fp.DateTime, MaxLen: 20, AllowDateRange: true}
 	f10 := fp.FlagInfo{FlagName: string(all), FlagType: fp.Boolean, Standalone: true}
 	f11 := fp.FlagInfo{FlagName: string(finished), FlagType: fp.Boolean, Standalone: true}
 	f12 := fp.FlagInfo{FlagName: string(markComplete), FlagType: fp.Boolean, Standalone: true}
@@ -181,52 +181,75 @@ func (gCmd *GetCommand) getFunc(itms []domain.TodoItem) func() string {
 	return f
 }
 
-func (gCmd *GetCommand) determineQueryType() ([]domain.UserQueryElement, error) {
-	var ret []domain.UserQueryElement
+func (gCmd *GetCommand) determineQueryType() ([]domain.UserQuery, error) {
+	var ret []domain.UserQuery
 
 	// by id numbers
 	if gCmd.id != 0 {
-		ret = append(ret, domain.ById)
+		ret = append(ret, domain.UserQuery{Elem: domain.ById})
 		return ret, nil // no further search params needed; id unique
 	}
 	if gCmd.parentOf != 0 {
-		ret = append(ret, domain.ByChildId)
+		ret = append(ret, domain.UserQuery{Elem: domain.ByChildId})
 		return ret, nil // no further search params needed; only 1 parent possible
 	}
 	if gCmd.childOf != 0 {
-		ret = append(ret, domain.ByParentId)
+		ret = append(ret, domain.UserQuery{Elem: domain.ByParentId})
 	}
 
 	if gCmd.next {
 		if gCmd.deadlineDate == "" {
-			ret = append(ret, domain.ByNextDate)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByNextDate})
 		} else if gCmd.deadlineDate == "." {
-			ret = append(ret, domain.ByNextPriority)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByNextPriority})
 		}
 	}
 
 	// by string
 	if gCmd.tagInput != "" {
-		ret = append(ret, domain.ByTag)
+		ret = append(ret, domain.UserQuery{Elem: domain.ByTag})
 	}
 	if gCmd.bodyPhrase != "" {
-		ret = append(ret, domain.ByBody)
+		ret = append(ret, domain.UserQuery{Elem: domain.ByBody})
 	}
 
 	// by times
 	if gCmd.deadlineDate != "" {
 		if gCmd.deadlineDate != "." {
-			ret = append(ret, domain.ByDeadline)
+			f := getDateBoundFunc(gCmd.deadlineDate, gCmd.appCtx.DateLayout)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByDeadline, DateSetter: f})
 		}
 	}
 	if gCmd.creationDate != "" {
-		ret = append(ret, domain.ByCreationDate)
+		f := getDateBoundFunc(gCmd.creationDate, gCmd.appCtx.DateLayout)
+		ret = append(ret, domain.UserQuery{Elem: domain.ByCreationDate, DateSetter: f})
 	}
 	if gCmd.complete || gCmd.toggleComplete {
-		ret = append(ret, domain.ByCompletion)
+		ret = append(ret, domain.UserQuery{Elem: domain.ByCompletion})
 	}
 
 	return ret, nil
+}
+
+func getDateBoundFunc(dateText string, dateLayout string) domain.SetUpperDateBound {
+	splt := splitDates(dateText)
+	var f domain.SetUpperDateBound
+
+	if len(splt) > 1 {
+		f = func() (bool, time.Time) {
+			return false, time.Now()
+		}
+	} else {
+		f = func() (bool, time.Time) {
+			d, _ := time.Parse(dateLayout, splt[1])
+			return true, d
+		}
+	}
+	return f
+}
+
+func splitDates(s string) []string {
+	return strings.Split(s, ":")
 }
 
 func (gCmd *GetCommand) buildOutput(itm domain.TodoItem) string {

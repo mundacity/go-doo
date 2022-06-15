@@ -223,62 +223,62 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 	return nil
 }
 
-func (eCmd *EditCommand) determineQueryType(qType domain.QueryType) ([]domain.UserQueryElement, error) {
-	var ret []domain.UserQueryElement
+func (eCmd *EditCommand) determineQueryType(qType domain.QueryType) ([]domain.UserQuery, error) {
+	var ret []domain.UserQuery
 
 	switch qType {
 	case domain.Get:
 		// by id numbers
 		if eCmd.id != 0 {
-			ret = append(ret, domain.ById)
+			ret = append(ret, domain.UserQuery{Elem: domain.ById})
 		}
 		if eCmd.childOf != 0 {
-			ret = append(ret, domain.ByParentId)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByParentId})
 		}
 
 		// by string
 		if eCmd.tagInput != "" {
-			ret = append(ret, domain.ByTag)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByTag})
 		}
 		if eCmd.body != "" {
-			ret = append(ret, domain.ByBody)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByBody})
 		}
 
 		// by times
 		if eCmd.deadline != "" {
-			ret = append(ret, domain.ByDeadline)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByDeadline})
 		}
 		if eCmd.creationDate != "" {
-			ret = append(ret, domain.ByCreationDate)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByCreationDate})
 		}
 		if eCmd.complete {
-			ret = append(ret, domain.ByCompletion)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByCompletion})
 		}
 	case domain.Update:
 		if eCmd.newParent != 0 {
-			ret = append(ret, domain.ByParentId)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByParentId})
 		}
 
 		// by string
 		if eCmd.newTag != "" {
-			ret = append(ret, domain.ByTag)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByTag})
 		}
 		if eCmd.newBody != "" {
-			ret = append(ret, domain.ByBody)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByBody})
 		}
 
 		// by times
 		if eCmd.newDeadline != "" {
-			ret = append(ret, domain.ByDeadline)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByDeadline})
 		}
 		if eCmd.appending {
-			ret = append(ret, domain.ByAppending)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByAppending})
 		}
 		if eCmd.replacing {
-			ret = append(ret, domain.ByReplacement)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByReplacement})
 		}
 		if eCmd.newlyComplete {
-			ret = append(ret, domain.ByCompletion)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByCompletion})
 		}
 	}
 

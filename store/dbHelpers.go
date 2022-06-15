@@ -138,7 +138,7 @@ func (sr *Repo) processQuery(all *sql.Rows, mp map[int]*domain.TodoItem) ([]doma
 }
 
 func (r *Repo) assembleUpdateData(sql string,
-	srchOptions, edtOptions []domain.UserQueryElement,
+	srchOptions, edtOptions []domain.UserQuery,
 	selector, newVals domain.TodoItem) (string, []any) {
 
 	updateLst := getWhereList(edtOptions, newVals)  // to generate 'a-h' in 'update items set a=b, c=d, e=f, g=h where x'
@@ -171,15 +171,15 @@ func buildAndWhere(input []where_map_entry, sqlBase string) (string, []any) {
 	return sqlBase, vals
 }
 
-func buildUpdatePairs(input []where_map_entry, sqlBase string, options []domain.UserQueryElement) (string, []any) {
+func buildUpdatePairs(input []where_map_entry, sqlBase string, options []domain.UserQuery) (string, []any) {
 	var appending, replacing bool
 
 	for _, o := range options {
-		if o == domain.ByAppending {
+		if o.Elem == domain.ByAppending {
 			appending = true
 			break
 		}
-		if o == domain.ByReplacement {
+		if o.Elem == domain.ByReplacement {
 			replacing = true
 		}
 	}

@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mundacity/go-doo/domain"
@@ -55,7 +57,7 @@ func (r *Repo) Add(itm *domain.TodoItem) (int64, error) {
 	return id, nil
 }
 
-func (r *Repo) UpdateWhere(srchOptions, edtOptions []domain.UserQueryElement, selector, newVals domain.TodoItem) (int, error) {
+func (r *Repo) UpdateWhere(srchOptions, edtOptions []domain.UserQuery, selector, newVals domain.TodoItem) (int, error) {
 
 	itmSql := getSql(domain.Update, r.kind, items)
 	//tagSql := "update tags set " // will need to do these separately
@@ -85,7 +87,7 @@ func (r *Repo) UpdateWhere(srchOptions, edtOptions []domain.UserQueryElement, se
 	return int(rows), nil
 }
 
-func (sr *Repo) GetWhere(options []domain.UserQueryElement, input domain.TodoItem) ([]domain.TodoItem, error) {
+func (sr *Repo) GetWhere(options []domain.UserQuery, input domain.TodoItem) ([]domain.TodoItem, error) {
 
 	if len(options) == 0 {
 		return sr.getAll()
@@ -124,11 +126,11 @@ func (r *Repo) getAll() ([]domain.TodoItem, error) {
 
 }
 
-func getWhereList(options []domain.UserQueryElement, input domain.TodoItem) []where_map_entry {
+func getWhereList(options []domain.UserQuery, input domain.TodoItem) []where_map_entry {
 	var lst []where_map_entry
 
 	for _, opt := range options {
-		if opt == domain.ByAppending || opt == domain.ByReplacement {
+		if opt.Elem == domain.ByAppending || opt.Elem == domain.ByReplacement {
 			// query modifiers; not query types/options
 			continue
 		}
@@ -140,8 +142,8 @@ func getWhereList(options []domain.UserQueryElement, input domain.TodoItem) []wh
 	return lst
 }
 
-func getColAndVal(q domain.UserQueryElement, input domain.TodoItem) (string, any) {
-	switch q {
+func getColAndVal(q domain.UserQuery, input domain.TodoItem) (string, any) {
+	switch q.Elem {
 	case domain.ById:
 		return "i.id", input.Id
 	case domain.ByChildId:
@@ -157,13 +159,31 @@ func getColAndVal(q domain.UserQueryElement, input domain.TodoItem) (string, any
 	case domain.ByNextDate:
 		return "", nil // same
 	case domain.ByDeadline:
-		return "deadline", util.StringFromDate(input.Deadline)
+		return "deadline", getDateString(q, input)
 	case domain.ByCreationDate:
 		return "creationDate", util.StringFromDate(input.CreationDate)
 	case domain.ByCompletion:
 		return "isComplete", input.IsComplete
 	}
 	return "", nil
+}
+
+func getDateString(q domain.UserQuery, itm domain.TodoItem) string {
+
+	var d time.Time
+	if q.Elem == domain.ByDeadline {
+		d = itm.Deadline
+	}
+	if q.Elem == domain.ByCreationDate {
+		d = itm.CreationDate
+	}
+
+	ok, lower := q.DateSetter()
+	if !ok {
+		return util.StringFromDate(d)
+	}
+
+	return fmt.Sprintf("between '%v' and '%v'", d, util.StringFromDate(lower))
 }
 
 func getTagFromMap(mp map[string]struct{}) string {
