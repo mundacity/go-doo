@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -159,17 +158,17 @@ func getColAndVal(q domain.UserQuery, input domain.TodoItem) (string, any) {
 	case domain.ByNextDate:
 		return "", nil // same
 	case domain.ByDeadline:
-		return "deadline", getDateString(q, input)
+		return "deadline", getDateRange(q, input)
 	case domain.ByCreationDate:
-		return "creationDate", util.StringFromDate(input.CreationDate)
+		return "creationDate", getDateRange(q, input)
 	case domain.ByCompletion:
 		return "isComplete", input.IsComplete
 	}
 	return "", nil
 }
 
-func getDateString(q domain.UserQuery, itm domain.TodoItem) string {
-
+func getDateRange(q domain.UserQuery, itm domain.TodoItem) []string {
+	var ret []string
 	var d time.Time
 	if q.Elem == domain.ByDeadline {
 		d = itm.Deadline
@@ -178,12 +177,18 @@ func getDateString(q domain.UserQuery, itm domain.TodoItem) string {
 		d = itm.CreationDate
 	}
 
+	if q.DateSetter == nil {
+		ret = append(ret, util.StringFromDate(d))
+		return ret
+	}
 	ok, lower := q.DateSetter()
 	if !ok {
-		return util.StringFromDate(d)
+		ret = append(ret, util.StringFromDate(d))
+		return ret
 	}
 
-	return fmt.Sprintf("between '%v' and '%v'", d, util.StringFromDate(lower))
+	ret = append(ret, util.StringFromDate(d), util.StringFromDate(lower))
+	return ret
 }
 
 func getTagFromMap(mp map[string]struct{}) string {

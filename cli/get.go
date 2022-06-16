@@ -122,10 +122,12 @@ func (gCmd *GetCommand) GenerateTodoItem() (domain.TodoItem, error) {
 	}
 
 	if gCmd.creationDate != "" {
-		ret.CreationDate, _ = time.Parse(gCmd.appCtx.DateLayout, gCmd.creationDate)
+		splt := strings.Split(gCmd.creationDate, ":")
+		ret.CreationDate, _ = time.Parse(gCmd.appCtx.DateLayout, splt[0]) //only ever need first one
 	}
-	if gCmd.deadlineDate != "" {
-		ret.Deadline, _ = time.Parse(gCmd.appCtx.DateLayout, gCmd.deadlineDate)
+	if gCmd.deadlineDate != "" && gCmd.deadlineDate != "." {
+		splt := strings.Split(gCmd.deadlineDate, ":")
+		ret.Deadline, _ = time.Parse(gCmd.appCtx.DateLayout, splt[0])
 	}
 	if gCmd.bodyPhrase != "" {
 		ret.Body = gCmd.bodyPhrase
@@ -237,12 +239,12 @@ func getDateBoundFunc(dateText string, dateLayout string) domain.SetUpperDateBou
 
 	if len(splt) > 1 {
 		f = func() (bool, time.Time) {
-			return false, time.Now()
+			d, _ := time.Parse(dateLayout, splt[1])
+			return true, d
 		}
 	} else {
 		f = func() (bool, time.Time) {
-			d, _ := time.Parse(dateLayout, splt[1])
-			return true, d
+			return false, time.Now()
 		}
 	}
 	return f

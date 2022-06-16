@@ -154,6 +154,8 @@ func (r *Repo) assembleUpdateData(sql string,
 func buildAndWhere(input []where_map_entry, sqlBase string) (string, []any) {
 	andStr := ""
 	vals := make([]any, len(input))
+
+	offset := 0
 	for i, w := range input { //like '%fishy%'
 		if i > 0 {
 			andStr = " and "
@@ -162,11 +164,25 @@ func buildAndWhere(input []where_map_entry, sqlBase string) (string, []any) {
 		if w.columnName == "body" {
 			w.colValue = fmt.Sprintf("%%%v%%", w.colValue)
 			sqlBase += fmt.Sprintf("%v%v like ?", andStr, w.columnName)
-			vals[i] = w.colValue
+			vals[i+offset] = w.colValue
 			continue
 		}
+		if w.columnName == "creationDate" || w.columnName == "deadline" {
+
+			vs := w.colValue.([]string)
+			if len(vs) > 1 { //it's a range search
+				sqlBase += fmt.Sprintf("%v%v between ? and ?", andStr, w.columnName)
+				vals[i+offset] = vs[0]
+				offset++
+				vals = append(vals, nil)
+				vals[i+offset] = vs[1]
+				continue
+			} else {
+				w.colValue = vs[0]
+			}
+		}
 		sqlBase += fmt.Sprintf("%v%v = ?", andStr, w.columnName)
-		vals[i] = w.colValue
+		vals[i+offset] = w.colValue
 	}
 	return sqlBase, vals
 }
