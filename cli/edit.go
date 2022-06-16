@@ -88,10 +88,10 @@ func (eCmd *EditCommand) GetValidFlags() ([]fp.FlagInfo, error) {
 
 	f1 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
 	f2 := fp.FlagInfo{FlagName: string(itmId), FlagType: fp.Integer, MaxLen: maxIntDigits}
-	f3 := fp.FlagInfo{FlagName: string(date), FlagType: fp.DateTime, MaxLen: 20}
+	f3 := fp.FlagInfo{FlagName: string(date), FlagType: fp.DateTime, MaxLen: 21, AllowDateRange: true}
 	f4 := fp.FlagInfo{FlagName: string(tag), FlagType: fp.Str, MaxLen: lenMax}
 	f5 := fp.FlagInfo{FlagName: string(child), FlagType: fp.Integer, MaxLen: maxIntDigits}
-	f6 := fp.FlagInfo{FlagName: string(creation), FlagType: fp.DateTime, MaxLen: 20}
+	f6 := fp.FlagInfo{FlagName: string(creation), FlagType: fp.DateTime, MaxLen: 21, AllowDateRange: true}
 	f14 := fp.FlagInfo{FlagName: string(finished), FlagType: fp.Boolean, Standalone: true}
 
 	f7 := fp.FlagInfo{FlagName: string(appendMode), FlagType: fp.Boolean, Standalone: true}
@@ -129,10 +129,12 @@ func (eCmd *EditCommand) GenerateTodoItem() (domain.TodoItem, error) {
 			ret.IsChild = true
 		}
 		if eCmd.creationDate != "" {
-			ret.CreationDate, _ = time.Parse(eCmd.appCtx.DateLayout, eCmd.creationDate)
+			splt := strings.Split(eCmd.creationDate, ":")
+			ret.CreationDate, _ = time.Parse(eCmd.appCtx.DateLayout, splt[0]) //whether range or not, only ever going to need first one
 		}
 		if eCmd.deadline != "" {
-			ret.Deadline, _ = time.Parse(eCmd.appCtx.DateLayout, eCmd.deadline)
+			splt := strings.Split(eCmd.deadline, ":")
+			ret.Deadline, _ = time.Parse(eCmd.appCtx.DateLayout, splt[0])
 		}
 		if eCmd.body != "" {
 			ret.Body = eCmd.body
@@ -246,10 +248,12 @@ func (eCmd *EditCommand) determineQueryType(qType domain.QueryType) ([]domain.Us
 
 		// by times
 		if eCmd.deadline != "" {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByDeadline})
+			f := getDateBoundFunc(eCmd.deadline, eCmd.appCtx.DateLayout)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByDeadline, DateSetter: f})
 		}
 		if eCmd.creationDate != "" {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByCreationDate})
+			f := getDateBoundFunc(eCmd.creationDate, eCmd.appCtx.DateLayout)
+			ret = append(ret, domain.UserQuery{Elem: domain.ByCreationDate, DateSetter: f})
 		}
 		if eCmd.complete {
 			ret = append(ret, domain.UserQuery{Elem: domain.ByCompletion})
