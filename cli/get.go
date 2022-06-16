@@ -83,11 +83,11 @@ func (getCmd *GetCommand) GetValidFlags() ([]fp.FlagInfo, error) {
 	f8 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
 	f2 := fp.FlagInfo{FlagName: string(itmId), FlagType: fp.Integer, MaxLen: maxIntDigits}
 	f3 := fp.FlagInfo{FlagName: string(next), FlagType: fp.Boolean, Standalone: true} // TODO: implement
-	f4 := fp.FlagInfo{FlagName: string(date), FlagType: fp.DateTime, MaxLen: 20, AllowDateRange: true}
+	f4 := fp.FlagInfo{FlagName: string(date), FlagType: fp.DateTime, MaxLen: 21, AllowDateRange: true}
 	f5 := fp.FlagInfo{FlagName: string(tag), FlagType: fp.Str, MaxLen: lenMax}
 	f6 := fp.FlagInfo{FlagName: string(child), FlagType: fp.Integer, MaxLen: maxIntDigits}
 	f7 := fp.FlagInfo{FlagName: string(parent), FlagType: fp.Integer, MaxLen: maxIntDigits}
-	f9 := fp.FlagInfo{FlagName: string(creation), FlagType: fp.DateTime, MaxLen: 20, AllowDateRange: true}
+	f9 := fp.FlagInfo{FlagName: string(creation), FlagType: fp.DateTime, MaxLen: 21, AllowDateRange: true}
 	f10 := fp.FlagInfo{FlagName: string(all), FlagType: fp.Boolean, Standalone: true}
 	f11 := fp.FlagInfo{FlagName: string(finished), FlagType: fp.Boolean, Standalone: true}
 	f12 := fp.FlagInfo{FlagName: string(markComplete), FlagType: fp.Boolean, Standalone: true}

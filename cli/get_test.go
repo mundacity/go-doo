@@ -38,6 +38,11 @@ func _getTestCasesForGetting() []get_test_case {
 		expected: GetCommand{childOf: 9, deadlineDate: "."},
 		err:      nil,
 		name:     "get by child id",
+	}, {
+		args:     []string{"-F", "-d", "2022-06-01:2022-06-18"},
+		expected: GetCommand{complete: false, deadlineDate: "2022-06-01:2022-06-18"},
+		err:      nil,
+		name:     "get incomplete with literal deadline range (maxLen be at least 21)",
 	}}
 }
 
