@@ -44,12 +44,6 @@ type UserQuery struct {
 	DateSetter SetUpperDateBound
 }
 
-// type DateRangeQueryInfo struct {
-// 	qType UserQueryElement
-// 	lower time.Time
-// 	upper time.Time
-// }
-
 // Defines methods used to interact with data storage
 type IRepository interface {
 	GetWhere(options []UserQuery, input TodoItem) ([]TodoItem, error)

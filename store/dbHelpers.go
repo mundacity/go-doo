@@ -145,7 +145,7 @@ func (r *Repo) assembleUpdateData(sql string,
 	whereLst := getWhereList(srchOptions, selector) // to generate 'x' in above
 
 	sql, pairs := buildUpdatePairs(updateLst, sql, edtOptions)
-	sql, vals := buildAndWhere(whereLst, sql+" where ")
+	sql, vals := buildAndWhere(whereLst, sql+"where ")
 
 	pairs = append(pairs, vals...)
 	return sql, pairs
