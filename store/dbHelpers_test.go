@@ -23,6 +23,24 @@ func getUpdateAssemblingTestCases() []update_data_assembling_test_case {
 
 	return []update_data_assembling_test_case{{
 		sql:      getSql(domain.Update, domain.Sqlite, items),
+		srchOpts: []domain.UserQuery{{Elem: domain.ByDeadline, DateSetter: getResAndDate(true, "2022-01-18")}, {Elem: domain.ByCreationDate, DateSetter: getResAndDate(true, "2022-01-03")}, {Elem: domain.ByBody}},
+		slctr:    domain.TodoItem{Deadline: parseDate("2022-01-10"), CreationDate: parseDate("2021-12-23"), Body: "z start"},
+		edtOpts:  []domain.UserQuery{{Elem: domain.ByDeadline}, {Elem: domain.ByBody}, {Elem: domain.ByAppending}},
+		newData:  domain.TodoItem{Deadline: parseDate("2022-02-02"), Body: " dud"},
+		expSql:   "update items as i set deadline = ?, body = body || ? where deadline between ? and ? and creationDate between ? and ? and body like ?",
+		expVals:  []any{"2022-02-02", " dud", "2022-01-10", "2022-01-18", "2021-12-23", "2022-01-03", "%z start%"},
+		name:     "add one day to deadline by id",
+	}, {
+		sql:      getSql(domain.Update, domain.Sqlite, items),
+		srchOpts: []domain.UserQuery{{Elem: domain.ById}},
+		slctr:    domain.TodoItem{Id: 18},
+		edtOpts:  []domain.UserQuery{{Elem: domain.ByDeadline}},
+		newData:  domain.TodoItem{Deadline: parseDate("2022-06-02")},
+		expSql:   "update items as i set deadline = ? where i.id = ?",
+		expVals:  []any{"2022-06-02", 18},
+		name:     "add one day to deadline by id",
+	}, {
+		sql:      getSql(domain.Update, domain.Sqlite, items),
 		srchOpts: []domain.UserQuery{{Elem: domain.ByCreationDate}, {Elem: domain.ByDeadline, DateSetter: getResAndDate(true, "2022-06-22")}},
 		slctr:    domain.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01")},
 		edtOpts:  []domain.UserQuery{{Elem: domain.ByCompletion}},

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mundacity/go-doo/domain"
+	"github.com/mundacity/go-doo/util"
 )
 
 type edit_item_generation_test_case struct {
@@ -23,10 +24,16 @@ type edit_query_build_test_case struct {
 	expEdtLst  []domain.UserQueryElement
 	expSrchItm domain.TodoItem
 	expEdtItm  domain.TodoItem
+	args       []string //only needed when testing dates
 }
 
 func _getTestCasesForEditing() []edit_item_generation_test_case {
 	return []edit_item_generation_test_case{{
+		args:     []string{"-i", "18", "-D", "1d"},
+		expected: EditCommand{id: 18, newDeadline: "2022-03-15"},
+		err:      nil,
+		name:     "find by id toggle completion",
+	}, {
 		args:     []string{"-i", "3", "-F"},
 		expected: EditCommand{id: 3, newlyComplete: true},
 		err:      nil,
@@ -244,7 +251,9 @@ func compareTdoItms(itm1, itm2 domain.TodoItem) (bool, string) {
 		return false, "no creationDate match"
 	}
 	if itm1.Deadline != itm2.Deadline {
-		return false, "no deadline match"
+		t1 := util.StringFromDate(itm1.Deadline)
+		t2 := util.StringFromDate(itm2.Deadline)
+		return false, fmt.Sprintf("no deadline match - %v vs. %v", t1, t2)
 	}
 	if itm1.Priority != itm2.Priority {
 		return false, "no priority match"
