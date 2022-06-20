@@ -220,6 +220,11 @@ func buildUpdatePairs(input []where_map_entry, sqlBase string, options []domain.
 			sqlBase += fmt.Sprintf("%v = not %v%v", itm.columnName, itm.columnName, comma)
 			continue
 		}
+		//only ever 1 value for an update
+		if itm.columnName == "creationDate" || itm.columnName == "deadline" {
+			vs := itm.colValue.([]string)
+			itm.colValue = vs[0]
+		}
 
 		sqlBase += fmt.Sprintf("%v = ?%v", itm.columnName, comma)
 		vals = append(vals, itm.colValue)
