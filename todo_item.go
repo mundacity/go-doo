@@ -1,10 +1,21 @@
-package domain
+package godoo
 
 import (
 	"errors"
 	"time"
+)
 
-	"github.com/spf13/viper"
+// Function used in TodoItem initialisation to set PriorityLevel
+type PriorityOption func(itm *TodoItem)
+
+type PriorityLevel int
+
+const (
+	None PriorityLevel = iota
+	Low
+	Medium
+	High
+	DateBased
 )
 
 type TodoItem struct {
@@ -34,10 +45,10 @@ func WithPriorityLevel(p PriorityLevel) PriorityOption {
 	}
 }
 
-func WithDateBasedPriority(date string) PriorityOption {
+func WithDateBasedPriority(date, dateFormat string) PriorityOption {
 	return func(itm *TodoItem) {
 		itm.Priority = DateBased
-		dl, _ := time.Parse(viper.GetString("DateFormat"), date)
+		dl, _ := time.Parse(dateFormat, date)
 		itm.Deadline = dl
 	}
 }
@@ -85,4 +96,16 @@ func (itm *TodoItem) AddTag(t string) error {
 
 	itm.Tags[t] = struct{}{}
 	return nil
+}
+
+type TagAlreadyExistsError struct{}
+
+func (e *TagAlreadyExistsError) Error() string {
+	return "supplied tag already present"
+}
+
+type NegativeParentIdError struct{}
+
+func (e *NegativeParentIdError) Error() string {
+	return "supplied ParentId less than zero"
 }

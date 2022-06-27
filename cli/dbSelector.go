@@ -1,13 +1,13 @@
 package cli
 
 import (
-	"github.com/mundacity/go-doo/domain"
+	godoo "github.com/mundacity/go-doo"
 	"github.com/mundacity/go-doo/store"
 )
 
-func GetRepo(dbKind domain.DbType, connStr, dateLayout string) domain.IRepository {
+func GetRepo(dbKind godoo.DbType, connStr, dateLayout string) godoo.IRepository {
 	switch dbKind {
-	case domain.Sqlite:
+	case godoo.Sqlite:
 		return store.NewRepo(connStr, dbKind, dateLayout)
 	}
 	return nil

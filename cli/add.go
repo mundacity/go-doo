@@ -8,7 +8,7 @@ import (
 	"time"
 
 	fp "github.com/mundacity/flag-parser"
-	"github.com/mundacity/go-doo/domain"
+	godoo "github.com/mundacity/go-doo"
 	"github.com/mundacity/go-doo/util"
 )
 
@@ -118,8 +118,8 @@ func (aCmd *AddCommand) Run(w io.Writer) error {
 	return nil
 }
 
-func (aCmd *AddCommand) GenerateTodoItem() (domain.TodoItem, error) {
-	var td domain.TodoItem
+func (aCmd *AddCommand) GenerateTodoItem() (godoo.TodoItem, error) {
+	var td godoo.TodoItem
 
 	if len(aCmd.deadlineDate) > 0 {
 		aCmd.mode = deadline
@@ -127,17 +127,17 @@ func (aCmd *AddCommand) GenerateTodoItem() (domain.TodoItem, error) {
 
 	switch aCmd.mode {
 	case low:
-		td = *domain.NewTodoItem(domain.WithPriorityLevel(domain.Low))
+		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.Low))
 	case medium:
-		td = *domain.NewTodoItem(domain.WithPriorityLevel(domain.Medium))
+		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.Medium))
 	case high:
-		td = *domain.NewTodoItem(domain.WithPriorityLevel(domain.High))
+		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.High))
 	case deadline:
-		td = *domain.NewTodoItem(domain.WithDateBasedPriority(aCmd.deadlineDate))
+		td = *godoo.NewTodoItem(godoo.WithDateBasedPriority(aCmd.deadlineDate, aCmd.appCtx.DateLayout))
 		d, _ := time.Parse(aCmd.appCtx.DateLayout, aCmd.deadlineDate)
 		td.Deadline = d
 	default:
-		td = *domain.NewTodoItem(domain.WithPriorityLevel(domain.None))
+		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 	}
 
 	td.Body = aCmd.body
@@ -150,7 +150,7 @@ func (aCmd *AddCommand) GenerateTodoItem() (domain.TodoItem, error) {
 
 // helper to parse delimited tag input;
 // requires <td> tag map to be initialised (e.g. via constructor func)
-func parseTagInput(td *domain.TodoItem, input, delim string) {
+func parseTagInput(td *godoo.TodoItem, input, delim string) {
 	if len(input) > 0 {
 		tgs := strings.Split(input, delim)
 		for _, t := range tgs {

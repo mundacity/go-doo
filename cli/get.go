@@ -8,7 +8,8 @@ import (
 	"time"
 
 	fp "github.com/mundacity/flag-parser"
-	"github.com/mundacity/go-doo/domain"
+	godoo "github.com/mundacity/go-doo"
+
 	"github.com/mundacity/go-doo/util"
 )
 
@@ -108,8 +109,8 @@ func (getCmd *GetCommand) ParseFlags() error {
 	return getCmd.fs.Parse(getCmd.appCtx.args)
 }
 
-func (gCmd *GetCommand) GenerateTodoItem() (domain.TodoItem, error) {
-	ret := domain.NewTodoItem(domain.WithPriorityLevel(domain.None))
+func (gCmd *GetCommand) GenerateTodoItem() (godoo.TodoItem, error) {
+	ret := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 
 	ret.Id = gCmd.id
 	if gCmd.childOf != 0 {
@@ -147,7 +148,7 @@ func (gCmd *GetCommand) Run(w io.Writer) error {
 
 	input, _ := gCmd.GenerateTodoItem()
 
-	var itms []domain.TodoItem
+	var itms []godoo.TodoItem
 	var err error
 
 	qList, err := gCmd.determineQueryType()
@@ -166,7 +167,7 @@ func (gCmd *GetCommand) Run(w io.Writer) error {
 	return nil
 }
 
-func (gCmd *GetCommand) getFunc(itms []domain.TodoItem) func() string {
+func (gCmd *GetCommand) getFunc(itms []godoo.TodoItem) func() string {
 	f := func() string {
 		var str string
 		for _, itm := range itms {
@@ -183,59 +184,59 @@ func (gCmd *GetCommand) getFunc(itms []domain.TodoItem) func() string {
 	return f
 }
 
-func (gCmd *GetCommand) determineQueryType() ([]domain.UserQuery, error) {
-	var ret []domain.UserQuery
+func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQuery, error) {
+	var ret []godoo.UserQuery
 
 	// by id numbers
 	if gCmd.id != 0 {
-		ret = append(ret, domain.UserQuery{Elem: domain.ById})
+		ret = append(ret, godoo.UserQuery{Elem: godoo.ById})
 		return ret, nil // no further search params needed; id unique
 	}
 	if gCmd.parentOf != 0 {
-		ret = append(ret, domain.UserQuery{Elem: domain.ByChildId})
+		ret = append(ret, godoo.UserQuery{Elem: godoo.ByChildId})
 		return ret, nil // no further search params needed; only 1 parent possible
 	}
 	if gCmd.childOf != 0 {
-		ret = append(ret, domain.UserQuery{Elem: domain.ByParentId})
+		ret = append(ret, godoo.UserQuery{Elem: godoo.ByParentId})
 	}
 
 	if gCmd.next {
 		if gCmd.deadlineDate == "" {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByNextDate})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByNextDate})
 		} else if gCmd.deadlineDate == "." {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByNextPriority})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByNextPriority})
 		}
 	}
 
 	// by string
 	if gCmd.tagInput != "" {
-		ret = append(ret, domain.UserQuery{Elem: domain.ByTag})
+		ret = append(ret, godoo.UserQuery{Elem: godoo.ByTag})
 	}
 	if gCmd.bodyPhrase != "" {
-		ret = append(ret, domain.UserQuery{Elem: domain.ByBody})
+		ret = append(ret, godoo.UserQuery{Elem: godoo.ByBody})
 	}
 
 	// by times
 	if gCmd.deadlineDate != "" {
 		if gCmd.deadlineDate != "." {
 			f := getDateBoundFunc(gCmd.deadlineDate, gCmd.appCtx.DateLayout)
-			ret = append(ret, domain.UserQuery{Elem: domain.ByDeadline, DateSetter: f})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByDeadline, DateSetter: f})
 		}
 	}
 	if gCmd.creationDate != "" {
 		f := getDateBoundFunc(gCmd.creationDate, gCmd.appCtx.DateLayout)
-		ret = append(ret, domain.UserQuery{Elem: domain.ByCreationDate, DateSetter: f})
+		ret = append(ret, godoo.UserQuery{Elem: godoo.ByCreationDate, DateSetter: f})
 	}
 	if gCmd.complete || gCmd.toggleComplete {
-		ret = append(ret, domain.UserQuery{Elem: domain.ByCompletion})
+		ret = append(ret, godoo.UserQuery{Elem: godoo.ByCompletion})
 	}
 
 	return ret, nil
 }
 
-func getDateBoundFunc(dateText string, dateLayout string) domain.SetUpperDateBound {
+func getDateBoundFunc(dateText string, dateLayout string) godoo.SetUpperDateBound {
 	splt := splitDates(dateText)
-	var f domain.SetUpperDateBound
+	var f godoo.SetUpperDateBound
 
 	if len(splt) > 1 {
 		f = func() (bool, time.Time) {
@@ -254,7 +255,7 @@ func splitDates(s string) []string {
 	return strings.Split(s, ":")
 }
 
-func (gCmd *GetCommand) buildOutput(itm domain.TodoItem) string {
+func (gCmd *GetCommand) buildOutput(itm godoo.TodoItem) string {
 	var retStr string
 	tagOut := getTagOutput(itm.Tags)
 	deadline := "n/a"

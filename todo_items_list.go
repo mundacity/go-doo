@@ -1,10 +1,8 @@
-package application
-
-import d "github.com/mundacity/go-doo/domain"
+package godoo
 
 // ItemsList is a container for specific implementations of ITodoCollection
 type ItemsList struct {
-	List  d.ITodoCollection
+	List  ITodoCollection
 	LType ListType
 }
 
@@ -31,4 +29,22 @@ func NewItemsList(o ListOption) *ItemsList {
 	tq := new(ItemsList)
 	o(tq)
 	return tq
+}
+
+type ItemIdNotFoundError struct{}
+
+func (i *ItemIdNotFoundError) Error() string {
+	return "supplied id does not exist"
+}
+
+type ItemIdAlreadyExistsError struct{}
+
+func (e *ItemIdAlreadyExistsError) Error() string {
+	return "id already in list"
+}
+
+type ItemNotAddedToPriorityListError struct{}
+
+func (e *ItemNotAddedToPriorityListError) Error() string {
+	return "item not pushed to heap"
 }

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mundacity/go-doo/domain"
+	godoo "github.com/mundacity/go-doo"
 	"github.com/mundacity/go-doo/util"
 )
 
@@ -20,10 +20,10 @@ type edit_item_generation_test_case struct {
 type edit_query_build_test_case struct {
 	input      EditCommand
 	name       string
-	expSrchLst []domain.UserQueryElement
-	expEdtLst  []domain.UserQueryElement
-	expSrchItm domain.TodoItem
-	expEdtItm  domain.TodoItem
+	expSrchLst []godoo.UserQueryElement
+	expEdtLst  []godoo.UserQueryElement
+	expSrchItm godoo.TodoItem
+	expEdtItm  godoo.TodoItem
 	args       []string //only needed when testing dates
 }
 
@@ -65,53 +65,53 @@ func getEditQueryBuildTestCases() []edit_query_build_test_case {
 	return []edit_query_build_test_case{{
 		input:      EditCommand{id: 3, newParent: 1},
 		name:       "id and new parent",
-		expSrchLst: []domain.UserQueryElement{domain.ById},
-		expEdtLst:  []domain.UserQueryElement{domain.ByParentId},
+		expSrchLst: []godoo.UserQueryElement{godoo.ById},
+		expEdtLst:  []godoo.UserQueryElement{godoo.ByParentId},
 		expSrchItm: *getTodoItm([]any{3, nil, nil, nil, nil, false}),
 		expEdtItm:  *getTodoItm([]any{nil, 1, nil, nil, nil, false}),
 	}, {
 		input:      EditCommand{id: 4, newBody: "seems to be working"},
 		name:       "id and new body",
-		expSrchLst: []domain.UserQueryElement{domain.ById},
-		expEdtLst:  []domain.UserQueryElement{domain.ByBody},
-		expSrchItm: domain.TodoItem{Id: 4},
-		expEdtItm:  domain.TodoItem{Body: "seems to be working"},
+		expSrchLst: []godoo.UserQueryElement{godoo.ById},
+		expEdtLst:  []godoo.UserQueryElement{godoo.ByBody},
+		expSrchItm: godoo.TodoItem{Id: 4},
+		expEdtItm:  godoo.TodoItem{Body: "seems to be working"},
 	}, {
 		input:      EditCommand{body: "edit command", newlyComplete: true},
 		name:       "body and complete",
-		expSrchLst: []domain.UserQueryElement{domain.ByBody},
-		expEdtLst:  []domain.UserQueryElement{domain.ByCompletion},
-		expSrchItm: domain.TodoItem{Body: "edit command"},
-		expEdtItm:  domain.TodoItem{IsComplete: true},
+		expSrchLst: []godoo.UserQueryElement{godoo.ByBody},
+		expEdtLst:  []godoo.UserQueryElement{godoo.ByCompletion},
+		expSrchItm: godoo.TodoItem{Body: "edit command"},
+		expEdtItm:  godoo.TodoItem{IsComplete: true},
 	}, {
 		input:      EditCommand{id: 15, replacing: true, newBody: "cleaned out by edit command"},
 		name:       "id - new body replaced",
-		expSrchLst: []domain.UserQueryElement{domain.ById},
-		expEdtLst:  []domain.UserQueryElement{domain.ByBody, domain.ByReplacement},
-		expSrchItm: domain.TodoItem{Id: 15},
-		expEdtItm:  domain.TodoItem{Body: "cleaned out by edit command"},
+		expSrchLst: []godoo.UserQueryElement{godoo.ById},
+		expEdtLst:  []godoo.UserQueryElement{godoo.ByBody, godoo.ByReplacement},
+		expSrchItm: godoo.TodoItem{Id: 15},
+		expEdtItm:  godoo.TodoItem{Body: "cleaned out by edit command"},
 	}, {
 		input:      EditCommand{body: "multiple", appending: true, newBody: "cleaned out by edit command"},
 		name:       "body - new body appended",
-		expSrchLst: []domain.UserQueryElement{domain.ByBody},
-		expEdtLst:  []domain.UserQueryElement{domain.ByBody, domain.ByAppending},
-		expSrchItm: domain.TodoItem{Body: "multiple"},
-		expEdtItm:  domain.TodoItem{Body: "cleaned out by edit command"},
+		expSrchLst: []godoo.UserQueryElement{godoo.ByBody},
+		expEdtLst:  []godoo.UserQueryElement{godoo.ByBody, godoo.ByAppending},
+		expSrchItm: godoo.TodoItem{Body: "multiple"},
+		expEdtItm:  godoo.TodoItem{Body: "cleaned out by edit command"},
 	}, {
 		input:      EditCommand{body: "multiple", tagInput: "dev", childOf: 4, appending: true, newBody: "cleaned out by edit command", newlyComplete: true},
 		name:       "body, tag, child - new body appended marked complete",
-		expSrchLst: []domain.UserQueryElement{domain.ByBody, domain.ByTag, domain.ByParentId},
-		expEdtLst:  []domain.UserQueryElement{domain.ByBody, domain.ByAppending, domain.ByCompletion},
+		expSrchLst: []godoo.UserQueryElement{godoo.ByBody, godoo.ByTag, godoo.ByParentId},
+		expEdtLst:  []godoo.UserQueryElement{godoo.ByBody, godoo.ByAppending, godoo.ByCompletion},
 		expSrchItm: *getTodoItm([]any{nil, 4, "multiple", "dev", nil, false}),
 		expEdtItm:  *getTodoItm([]any{nil, nil, "cleaned out by edit command", nil, nil, true}),
 	}}
 }
 
 // ***TESTING ONLY*** order significant: id, parentid, body, tag, deadline, isComplete
-func getTodoItm(data []any) *domain.TodoItem {
+func getTodoItm(data []any) *godoo.TodoItem {
 
 	// hideous - just for testing!
-	itm := domain.NewTodoItem(domain.WithPriorityLevel(domain.None))
+	itm := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 
 	if data[0] != nil {
 		itm.Id = data[0].(int)
@@ -172,8 +172,8 @@ func _runEditTest(t *testing.T, tc edit_item_generation_test_case) {
 }
 
 func runQueryBuildTests(t *testing.T, tc edit_query_build_test_case) {
-	gotSrchLst, _ := tc.input.determineQueryType(domain.Get)
-	gotEdtList, _ := tc.input.determineQueryType(domain.Update)
+	gotSrchLst, _ := tc.input.determineQueryType(godoo.Get)
+	gotEdtList, _ := tc.input.determineQueryType(godoo.Update)
 
 	gotSrchItm, _ := tc.input.GenerateTodoItem()
 	tc.input.getNewVals = true
@@ -208,7 +208,7 @@ func runQueryBuildTests(t *testing.T, tc edit_query_build_test_case) {
 	}
 }
 
-func compareQueryElemsLists(lst1 []domain.UserQueryElement, lst2 []domain.UserQuery) (bool, string) {
+func compareQueryElemsLists(lst1 []godoo.UserQueryElement, lst2 []godoo.UserQuery) (bool, string) {
 	if len(lst1) != len(lst2) {
 		return false, "list length differs"
 	}
@@ -236,7 +236,7 @@ func compareQueryElemsLists(lst1 []domain.UserQueryElement, lst2 []domain.UserQu
 	return true, "full match"
 }
 
-func compareTdoItms(itm1, itm2 domain.TodoItem) (bool, string) {
+func compareTdoItms(itm1, itm2 godoo.TodoItem) (bool, string) {
 
 	if itm1.Id != itm2.Id {
 		return false, "no id match"

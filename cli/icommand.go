@@ -4,7 +4,7 @@ import (
 	"io"
 
 	fp "github.com/mundacity/flag-parser"
-	"github.com/mundacity/go-doo/domain"
+	godoo "github.com/mundacity/go-doo"
 )
 
 type ICommand interface {
@@ -12,5 +12,5 @@ type ICommand interface {
 	Run(io.Writer) error
 	GetValidFlags() ([]fp.FlagInfo, error)
 	SetupFlagMapper(userInput []string) error
-	GenerateTodoItem() (domain.TodoItem, error)
+	GenerateTodoItem() (godoo.TodoItem, error)
 }

@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mundacity/go-doo/domain"
+	godoo "github.com/mundacity/go-doo"
 )
 
 type update_data_assembling_test_case struct {
 	sql      string
-	srchOpts []domain.UserQuery
-	edtOpts  []domain.UserQuery
-	slctr    domain.TodoItem
-	newData  domain.TodoItem
+	srchOpts []godoo.UserQuery
+	edtOpts  []godoo.UserQuery
+	slctr    godoo.TodoItem
+	newData  godoo.TodoItem
 	expSql   string
 	expVals  []any
 	name     string
@@ -22,74 +22,74 @@ type update_data_assembling_test_case struct {
 func getUpdateAssemblingTestCases() []update_data_assembling_test_case {
 
 	return []update_data_assembling_test_case{{
-		sql:      getSql(domain.Update, domain.Sqlite, items),
-		srchOpts: []domain.UserQuery{{Elem: domain.ByDeadline, DateSetter: getResAndDate(true, "2022-01-18")}, {Elem: domain.ByCreationDate, DateSetter: getResAndDate(true, "2022-01-03")}, {Elem: domain.ByBody}},
-		slctr:    domain.TodoItem{Deadline: parseDate("2022-01-10"), CreationDate: parseDate("2021-12-23"), Body: "z start"},
-		edtOpts:  []domain.UserQuery{{Elem: domain.ByDeadline}, {Elem: domain.ByBody}, {Elem: domain.ByAppending}},
-		newData:  domain.TodoItem{Deadline: parseDate("2022-02-02"), Body: " dud"},
+		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		srchOpts: []godoo.UserQuery{{Elem: godoo.ByDeadline, DateSetter: getResAndDate(true, "2022-01-18")}, {Elem: godoo.ByCreationDate, DateSetter: getResAndDate(true, "2022-01-03")}, {Elem: godoo.ByBody}},
+		slctr:    godoo.TodoItem{Deadline: parseDate("2022-01-10"), CreationDate: parseDate("2021-12-23"), Body: "z start"},
+		edtOpts:  []godoo.UserQuery{{Elem: godoo.ByDeadline}, {Elem: godoo.ByBody}, {Elem: godoo.ByAppending}},
+		newData:  godoo.TodoItem{Deadline: parseDate("2022-02-02"), Body: " dud"},
 		expSql:   "update items as i set deadline = ?, body = body || ? where deadline between ? and ? and creationDate between ? and ? and body like ?",
 		expVals:  []any{"2022-02-02", " dud", "2022-01-10", "2022-01-18", "2021-12-23", "2022-01-03", "%z start%"},
 		name:     "add one day to deadline by id",
 	}, {
-		sql:      getSql(domain.Update, domain.Sqlite, items),
-		srchOpts: []domain.UserQuery{{Elem: domain.ById}},
-		slctr:    domain.TodoItem{Id: 18},
-		edtOpts:  []domain.UserQuery{{Elem: domain.ByDeadline}},
-		newData:  domain.TodoItem{Deadline: parseDate("2022-06-02")},
+		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		srchOpts: []godoo.UserQuery{{Elem: godoo.ById}},
+		slctr:    godoo.TodoItem{Id: 18},
+		edtOpts:  []godoo.UserQuery{{Elem: godoo.ByDeadline}},
+		newData:  godoo.TodoItem{Deadline: parseDate("2022-06-02")},
 		expSql:   "update items as i set deadline = ? where i.id = ?",
 		expVals:  []any{"2022-06-02", 18},
 		name:     "add one day to deadline by id",
 	}, {
-		sql:      getSql(domain.Update, domain.Sqlite, items),
-		srchOpts: []domain.UserQuery{{Elem: domain.ByCreationDate}, {Elem: domain.ByDeadline, DateSetter: getResAndDate(true, "2022-06-22")}},
-		slctr:    domain.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01")},
-		edtOpts:  []domain.UserQuery{{Elem: domain.ByCompletion}},
-		newData:  domain.TodoItem{IsComplete: true},
+		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		srchOpts: []godoo.UserQuery{{Elem: godoo.ByCreationDate}, {Elem: godoo.ByDeadline, DateSetter: getResAndDate(true, "2022-06-22")}},
+		slctr:    godoo.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01")},
+		edtOpts:  []godoo.UserQuery{{Elem: godoo.ByCompletion}},
+		newData:  godoo.TodoItem{IsComplete: true},
 		expSql:   "update items as i set isComplete = not isComplete where creationDate = ? and deadline between ? and ?",
 		expVals:  []any{"2022-06-01", "2022-06-10", "2022-06-22"},
 		name:     "toggle completion search on set creationDate and deadline range",
 	}, {
-		sql:      getSql(domain.Update, domain.Sqlite, items),
-		srchOpts: []domain.UserQuery{{Elem: domain.ByCreationDate, DateSetter: getResAndDate(true, "2022-06-05")}, {Elem: domain.ByDeadline, DateSetter: getResAndDate(true, "2022-06-22")}},
-		slctr:    domain.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01")},
-		edtOpts:  []domain.UserQuery{{Elem: domain.ByCompletion}},
-		newData:  domain.TodoItem{IsComplete: true},
+		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		srchOpts: []godoo.UserQuery{{Elem: godoo.ByCreationDate, DateSetter: getResAndDate(true, "2022-06-05")}, {Elem: godoo.ByDeadline, DateSetter: getResAndDate(true, "2022-06-22")}},
+		slctr:    godoo.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01")},
+		edtOpts:  []godoo.UserQuery{{Elem: godoo.ByCompletion}},
+		newData:  godoo.TodoItem{IsComplete: true},
 		expSql:   "update items as i set isComplete = not isComplete where creationDate between ? and ? and deadline between ? and ?",
 		expVals:  []any{"2022-06-01", "2022-06-05", "2022-06-10", "2022-06-22"},
 		name:     "toggle completion search on creationDate range and deadline range",
 	}, {
-		sql:      getSql(domain.Update, domain.Sqlite, items),
-		srchOpts: []domain.UserQuery{{Elem: domain.ByCreationDate}, {Elem: domain.ByDeadline}},
-		slctr:    domain.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01")},
-		edtOpts:  []domain.UserQuery{{Elem: domain.ByCompletion}},
-		newData:  domain.TodoItem{IsComplete: true},
+		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		srchOpts: []godoo.UserQuery{{Elem: godoo.ByCreationDate}, {Elem: godoo.ByDeadline}},
+		slctr:    godoo.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01")},
+		edtOpts:  []godoo.UserQuery{{Elem: godoo.ByCompletion}},
+		newData:  godoo.TodoItem{IsComplete: true},
 		expSql:   "update items as i set isComplete = not isComplete where creationDate = ? and deadline = ?",
 		expVals:  []any{"2022-06-01", "2022-06-10"},
 		name:     "toggle completion search set creationDate and set deadline",
 	}, {
-		sql:      getSql(domain.Update, domain.Sqlite, items),
-		srchOpts: []domain.UserQuery{{Elem: domain.ByCreationDate}, {Elem: domain.ByDeadline}, {Elem: domain.ByBody}},
-		slctr:    domain.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01"), Body: "key phrase"},
-		edtOpts:  []domain.UserQuery{{Elem: domain.ByBody}, {Elem: domain.ByAppending}},
-		newData:  domain.TodoItem{Body: "new body"},
+		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		srchOpts: []godoo.UserQuery{{Elem: godoo.ByCreationDate}, {Elem: godoo.ByDeadline}, {Elem: godoo.ByBody}},
+		slctr:    godoo.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01"), Body: "key phrase"},
+		edtOpts:  []godoo.UserQuery{{Elem: godoo.ByBody}, {Elem: godoo.ByAppending}},
+		newData:  godoo.TodoItem{Body: "new body"},
 		expSql:   "update items as i set body = body || ? where creationDate = ? and deadline = ? and body like ?",
 		expVals:  []any{"new body", "2022-06-01", "2022-06-10", "%key phrase%"},
 		name:     "append to body search set creationDate set deadline and body",
 	}, {
-		sql:      getSql(domain.Update, domain.Sqlite, items),
-		srchOpts: []domain.UserQuery{{Elem: domain.ByBody}, {Elem: domain.ByParentId}},
-		slctr:    domain.TodoItem{Body: "key phrase", ParentId: 8},
-		edtOpts:  []domain.UserQuery{{Elem: domain.ByBody}, {Elem: domain.ByAppending}, {Elem: domain.ByParentId}},
-		newData:  domain.TodoItem{Body: "new body", ParentId: 12, IsChild: true},
+		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		srchOpts: []godoo.UserQuery{{Elem: godoo.ByBody}, {Elem: godoo.ByParentId}},
+		slctr:    godoo.TodoItem{Body: "key phrase", ParentId: 8},
+		edtOpts:  []godoo.UserQuery{{Elem: godoo.ByBody}, {Elem: godoo.ByAppending}, {Elem: godoo.ByParentId}},
+		newData:  godoo.TodoItem{Body: "new body", ParentId: 12, IsChild: true},
 		expSql:   "update items as i set body = body || ?, parentId = ? where body like ? and parentId = ?",
 		expVals:  []any{"new body", 12, "%key phrase%", 8},
 		name:     "append to body change parent search body and parent",
 	}, {
-		sql:      getSql(domain.Update, domain.Sqlite, items),
-		srchOpts: []domain.UserQuery{{Elem: domain.ByBody}, {Elem: domain.ByParentId}},
-		slctr:    domain.TodoItem{Body: "key phrase", ParentId: 8},
-		edtOpts:  []domain.UserQuery{{Elem: domain.ByBody}, {Elem: domain.ByReplacement}, {Elem: domain.ByParentId}},
-		newData:  domain.TodoItem{Body: "new body", ParentId: 12, IsChild: true},
+		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		srchOpts: []godoo.UserQuery{{Elem: godoo.ByBody}, {Elem: godoo.ByParentId}},
+		slctr:    godoo.TodoItem{Body: "key phrase", ParentId: 8},
+		edtOpts:  []godoo.UserQuery{{Elem: godoo.ByBody}, {Elem: godoo.ByReplacement}, {Elem: godoo.ByParentId}},
+		newData:  godoo.TodoItem{Body: "new body", ParentId: 12, IsChild: true},
 		expSql:   "update items as i set body = ?, parentId = ? where body like ? and parentId = ?",
 		expVals:  []any{"new body", 12, "%key phrase%", 8},
 		name:     "replace body change parent search body and parent",
@@ -101,7 +101,7 @@ func parseDate(dStr string) time.Time {
 	return ret
 }
 
-func getResAndDate(yesNo bool, dStr string) domain.SetUpperDateBound {
+func getResAndDate(yesNo bool, dStr string) godoo.SetUpperDateBound {
 	if yesNo {
 		dt, _ := time.Parse("2006-01-02", dStr)
 		return func() (bool, time.Time) {
@@ -118,7 +118,7 @@ func getResAndDate(yesNo bool, dStr string) domain.SetUpperDateBound {
 }
 
 func getInMemDb() *Repo {
-	return NewRepo("", domain.Sqlite, "2006-01-02")
+	return NewRepo("", godoo.Sqlite, "2006-01-02")
 }
 
 func TestUpdateAssembling(t *testing.T) {

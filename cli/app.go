@@ -6,8 +6,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/mundacity/go-doo/domain"
-
+	godoo "github.com/mundacity/go-doo"
 	"github.com/spf13/viper"
 )
 
@@ -52,7 +51,7 @@ const (
 type AppContext struct {
 	args       []string
 	client     http.Client
-	todoRepo   domain.IRepository // todo: make a slice to implement multiple dbs
+	todoRepo   godoo.IRepository // todo: make a slice to implement multiple dbs
 	instance   InstanceType
 	DateLayout string
 	conn       string
@@ -126,7 +125,7 @@ func (app *AppContext) config() {
 	}
 
 	app.DateLayout = viper.GetString("DATETIME_FORMAT")
-	app.todoRepo = GetRepo(domain.Sqlite, app.conn, app.DateLayout)
+	app.todoRepo = GetRepo(godoo.Sqlite, app.conn, app.DateLayout)
 }
 
 func _getBasicCommand(ctx *AppContext) (ICommand, error) {

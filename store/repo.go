@@ -5,17 +5,17 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/mundacity/go-doo/domain"
+	godoo "github.com/mundacity/go-doo"
 	"github.com/mundacity/go-doo/util"
 )
 
-func NewRepo(conn string, dbKind domain.DbType, dateLayout string) *Repo {
+func NewRepo(conn string, dbKind godoo.DbType, dateLayout string) *Repo {
 	Db, _ := Init(conn, dbKind)
 	r := Repo{db: Db, dl: dateLayout, kind: dbKind}
 	return &r
 }
 
-func (r *Repo) Add(itm *domain.TodoItem) (int64, error) {
+func (r *Repo) Add(itm *godoo.TodoItem) (int64, error) {
 	var d string
 	if itm.Deadline.IsZero() {
 		d = ""
@@ -29,7 +29,7 @@ func (r *Repo) Add(itm *domain.TodoItem) (int64, error) {
 	}
 	defer tx.Rollback()
 
-	sql := getSql(domain.Add, r.kind, items)
+	sql := getSql(godoo.Add, r.kind, items)
 
 	res, err := tx.Exec(sql, itm.ParentId, util.StringFromDate(itm.CreationDate), d, itm.Body)
 	if err != nil {
@@ -42,7 +42,7 @@ func (r *Repo) Add(itm *domain.TodoItem) (int64, error) {
 	}
 
 	for t := range itm.Tags {
-		sql := getSql(domain.Add, r.kind, tags)
+		sql := getSql(godoo.Add, r.kind, tags)
 		_, err := tx.Exec(sql, id, t)
 		if err != nil {
 			return 0, err
@@ -56,9 +56,9 @@ func (r *Repo) Add(itm *domain.TodoItem) (int64, error) {
 	return id, nil
 }
 
-func (r *Repo) UpdateWhere(srchOptions, edtOptions []domain.UserQuery, selector, newVals domain.TodoItem) (int, error) {
+func (r *Repo) UpdateWhere(srchOptions, edtOptions []godoo.UserQuery, selector, newVals godoo.TodoItem) (int, error) {
 
-	itmSql := getSql(domain.Update, r.kind, items)
+	itmSql := getSql(godoo.Update, r.kind, items)
 	//tagSql := "update tags set " // will need to do these separately
 
 	itmSql, data := r.assembleUpdateData(itmSql, srchOptions, edtOptions, selector, newVals)
@@ -86,15 +86,15 @@ func (r *Repo) UpdateWhere(srchOptions, edtOptions []domain.UserQuery, selector,
 	return int(rows), nil
 }
 
-func (sr *Repo) GetWhere(options []domain.UserQuery, input domain.TodoItem) ([]domain.TodoItem, error) {
+func (sr *Repo) GetWhere(options []godoo.UserQuery, input godoo.TodoItem) ([]godoo.TodoItem, error) {
 
 	if len(options) == 0 {
 		return sr.getAll()
 	}
 
-	mp := make(map[int]*domain.TodoItem)
+	mp := make(map[int]*godoo.TodoItem)
 	whereLst := getWhereList(options, input)
-	sql, vals := buildAndWhere(whereLst, getSql(domain.Get, sr.kind, all)+" where ")
+	sql, vals := buildAndWhere(whereLst, getSql(godoo.Get, sr.kind, all)+" where ")
 
 	all, err := sr.db.Query(sql, vals...)
 	if err != nil {
@@ -108,9 +108,9 @@ func (sr *Repo) GetWhere(options []domain.UserQuery, input domain.TodoItem) ([]d
 	return ret, nil
 }
 
-func (r *Repo) getAll() ([]domain.TodoItem, error) {
-	sql := getSql(domain.Get, r.kind, all)
-	mp := make(map[int]*domain.TodoItem)
+func (r *Repo) getAll() ([]godoo.TodoItem, error) {
+	sql := getSql(godoo.Get, r.kind, all)
+	mp := make(map[int]*godoo.TodoItem)
 
 	all, err := r.db.Query(sql)
 	if err != nil {
@@ -125,11 +125,11 @@ func (r *Repo) getAll() ([]domain.TodoItem, error) {
 
 }
 
-func getWhereList(options []domain.UserQuery, input domain.TodoItem) []where_map_entry {
+func getWhereList(options []godoo.UserQuery, input godoo.TodoItem) []where_map_entry {
 	var lst []where_map_entry
 
 	for _, opt := range options {
-		if opt.Elem == domain.ByAppending || opt.Elem == domain.ByReplacement {
+		if opt.Elem == godoo.ByAppending || opt.Elem == godoo.ByReplacement {
 			// query modifiers; not query types/options
 			continue
 		}
@@ -141,39 +141,39 @@ func getWhereList(options []domain.UserQuery, input domain.TodoItem) []where_map
 	return lst
 }
 
-func getColAndVal(q domain.UserQuery, input domain.TodoItem) (string, any) {
+func getColAndVal(q godoo.UserQuery, input godoo.TodoItem) (string, any) {
 	switch q.Elem {
-	case domain.ById:
+	case godoo.ById:
 		return "i.id", input.Id
-	case domain.ByChildId:
+	case godoo.ByChildId:
 		return "", input.ChildItems
-	case domain.ByParentId:
+	case godoo.ByParentId:
 		return "parentId", input.ParentId
-	case domain.ByTag:
+	case godoo.ByTag:
 		return "tag", getTagFromMap(input.Tags)
-	case domain.ByBody:
+	case godoo.ByBody:
 		return "body", input.Body
-	case domain.ByNextPriority:
+	case godoo.ByNextPriority:
 		return "", nil // would follow a GetAll()
-	case domain.ByNextDate:
+	case godoo.ByNextDate:
 		return "", nil // same
-	case domain.ByDeadline:
+	case godoo.ByDeadline:
 		return "deadline", getDateRange(q, input)
-	case domain.ByCreationDate:
+	case godoo.ByCreationDate:
 		return "creationDate", getDateRange(q, input)
-	case domain.ByCompletion:
+	case godoo.ByCompletion:
 		return "isComplete", input.IsComplete
 	}
 	return "", nil
 }
 
-func getDateRange(q domain.UserQuery, itm domain.TodoItem) []string {
+func getDateRange(q godoo.UserQuery, itm godoo.TodoItem) []string {
 	var ret []string
 	var d time.Time
-	if q.Elem == domain.ByDeadline {
+	if q.Elem == godoo.ByDeadline {
 		d = itm.Deadline
 	}
-	if q.Elem == domain.ByCreationDate {
+	if q.Elem == godoo.ByCreationDate {
 		d = itm.CreationDate
 	}
 

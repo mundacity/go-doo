@@ -1,21 +1,21 @@
-package application
+package main_test
 
 import (
 	"fmt"
 	"strings"
 	"testing"
 
-	d "github.com/mundacity/go-doo/domain"
+	godoo "github.com/mundacity/go-doo"
 )
 
 type test_item_info struct {
 	id       int
 	name     string
-	priority d.PriorityLevel
+	priority godoo.PriorityLevel
 }
 
 func TestPriorityListCreation(t *testing.T) {
-	pl := NewPriorityList()
+	pl := godoo.NewPriorityList()
 
 	if pl.List.Items == nil {
 		t.Errorf("%v%v", getText(false), "priority list not created")
@@ -25,8 +25,8 @@ func TestPriorityListCreation(t *testing.T) {
 }
 
 func TestAddToPriorityList(t *testing.T) {
-	pl := NewPriorityList()
-	td := d.NewTodoItem(d.WithPriorityLevel(d.None))
+	pl := godoo.NewPriorityList()
+	td := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 
 	err := pl.Add(*td)
 	if err != nil {
@@ -37,7 +37,7 @@ func TestAddToPriorityList(t *testing.T) {
 }
 
 func TestPush(t *testing.T) {
-	pl := NewPriorityList()
+	pl := godoo.NewPriorityList()
 	itms := getTodoSliceWitPriorityRating()
 
 	for idx, itm := range itms {
@@ -47,7 +47,7 @@ func TestPush(t *testing.T) {
 	}
 }
 
-func test_push(t *testing.T, itm *d.TodoItem, pl *PriorityList) {
+func test_push(t *testing.T, itm *godoo.TodoItem, pl *godoo.PriorityList) {
 
 	currLen := len(pl.List.Items)
 	err := pl.Add(*itm)
@@ -60,7 +60,7 @@ func test_push(t *testing.T, itm *d.TodoItem, pl *PriorityList) {
 }
 
 func TestPop(t *testing.T) {
-	pl := NewPriorityList()
+	pl := godoo.NewPriorityList()
 	itms := getTodoSliceWitPriorityRating()
 
 	for _, itm := range itms {
@@ -75,15 +75,15 @@ func TestPop(t *testing.T) {
 	}
 }
 
-func getTodoSliceWitPriorityRating() []*d.TodoItem {
-	var tds []*d.TodoItem
-	itm1 := d.NewTodoItem(d.WithPriorityLevel(d.None))
+func getTodoSliceWitPriorityRating() []*godoo.TodoItem {
+	var tds []*godoo.TodoItem
+	itm1 := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 	itm1.Id = 11
-	itm2 := d.NewTodoItem(d.WithPriorityLevel(d.High))
+	itm2 := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.High))
 	itm2.Id = 22
-	itm3 := d.NewTodoItem(d.WithPriorityLevel(d.Low))
+	itm3 := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.Low))
 	itm3.Id = 33
-	itm4 := d.NewTodoItem(d.WithPriorityLevel(d.Low))
+	itm4 := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.Low))
 	itm4.Id = 44
 	tds = append(tds, itm1, itm2, itm3, itm4)
 
@@ -92,10 +92,10 @@ func getTodoSliceWitPriorityRating() []*d.TodoItem {
 
 func TestPoppingMultiple(t *testing.T) {
 	itms := getTestPoppingItems()
-	pl := NewPriorityList()
+	pl := godoo.NewPriorityList()
 
 	for _, itm := range itms {
-		td := d.NewTodoItem(d.WithPriorityLevel(itm.priority))
+		td := godoo.NewTodoItem(godoo.WithPriorityLevel(itm.priority))
 		td.Id = itm.id
 		td.Body = itm.name
 		pl.Add(*td)
@@ -123,31 +123,31 @@ func getTestPoppingItems() []test_item_info {
 	itms := []test_item_info{{
 		id:       7,
 		name:     "id = 7, priority low",
-		priority: d.Low,
+		priority: godoo.Low,
 	}, {
 		id:       8,
 		name:     "id = 8, priority none",
-		priority: d.None,
+		priority: godoo.None,
 	}, {
 		id:       10,
 		name:     "id = 10, priority high",
-		priority: d.High,
+		priority: godoo.High,
 	}, {
 		id:       9,
 		name:     "id = 9, priority medium",
-		priority: d.Medium,
+		priority: godoo.Medium,
 	}, {
 		id:       11,
 		name:     "id = 11, priority medium",
-		priority: d.Medium,
+		priority: godoo.Medium,
 	},
 	}
 	return itms
 }
 
 func TestDeleteNonExistantItem(t *testing.T) {
-	pl := NewPriorityList()
-	td := d.NewTodoItem(d.WithPriorityLevel(d.None))
+	pl := godoo.NewPriorityList()
+	td := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 	td.Id = 1
 	pl.Add(*td)
 
@@ -160,8 +160,8 @@ func TestDeleteNonExistantItem(t *testing.T) {
 }
 
 func TestValidDelete(t *testing.T) {
-	pl := NewPriorityList()
-	td := d.NewTodoItem(d.WithPriorityLevel(d.None))
+	pl := godoo.NewPriorityList()
+	td := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 	td.Id = 1
 	pl.Add(*td)
 
@@ -175,10 +175,10 @@ func TestValidDelete(t *testing.T) {
 
 func TestValidHighPriorityAdditionAndSubsequentPop(t *testing.T) {
 	itms := getTestPoppingItems()
-	pl := NewPriorityList()
+	pl := godoo.NewPriorityList()
 
 	for _, itm := range itms {
-		td := d.NewTodoItem(d.WithPriorityLevel(itm.priority))
+		td := godoo.NewTodoItem(godoo.WithPriorityLevel(itm.priority))
 		td.Id = itm.id
 		td.Body = itm.name
 		pl.Add(*td)
@@ -186,9 +186,9 @@ func TestValidHighPriorityAdditionAndSubsequentPop(t *testing.T) {
 
 	_, _ = pl.GetNext() // get rid of highest priority; now got low, none, medium, medium priority in list
 
-	td2 := d.NewTodoItem(d.WithPriorityLevel(d.High))
+	td2 := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.High))
 	td2.Id = 777
-	td3 := d.NewTodoItem(d.WithPriorityLevel(d.Low))
+	td3 := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.Low))
 	td3.Id = 888
 	pl.Add(*td2)
 	pl.Add(*td3)
@@ -203,10 +203,10 @@ func TestValidHighPriorityAdditionAndSubsequentPop(t *testing.T) {
 
 func TestValidUpdate(t *testing.T) {
 	itms := getTestPoppingItems()
-	pl := NewPriorityList()
+	pl := godoo.NewPriorityList()
 
 	for _, itm := range itms {
-		td := d.NewTodoItem(d.WithPriorityLevel(itm.priority))
+		td := godoo.NewTodoItem(godoo.WithPriorityLevel(itm.priority))
 		td.Id = itm.id
 		td.Body = itm.name
 		pl.Add(*td)
@@ -214,11 +214,11 @@ func TestValidUpdate(t *testing.T) {
 
 	_, _ = pl.GetNext() // get rid of highest priority; now got low, none, medium, medium priority in list
 
-	td := d.NewTodoItem(d.WithPriorityLevel(d.None))
+	td := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 	td.Id = 1000
 	pl.Add(*td)
 
-	newPriority := d.High
+	newPriority := godoo.High
 	td.Priority = newPriority
 	pl.Update(td)
 
@@ -233,10 +233,10 @@ func TestValidUpdate(t *testing.T) {
 
 func TestInvalidUpdate(t *testing.T) {
 	itms := getTestPoppingItems()
-	pl := NewPriorityList()
+	pl := godoo.NewPriorityList()
 
 	for _, itm := range itms {
-		td := d.NewTodoItem(d.WithPriorityLevel(itm.priority))
+		td := godoo.NewTodoItem(godoo.WithPriorityLevel(itm.priority))
 		td.Id = itm.id
 		td.Body = itm.name
 		pl.Add(*td)

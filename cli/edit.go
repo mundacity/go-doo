@@ -11,7 +11,7 @@ import (
 	"time"
 
 	fp "github.com/mundacity/flag-parser"
-	"github.com/mundacity/go-doo/domain"
+	godoo "github.com/mundacity/go-doo"
 )
 
 type EditCommand struct {
@@ -119,8 +119,8 @@ func (eCmd *EditCommand) ParseFlags() error {
 	return eCmd.fs.Parse(eCmd.appCtx.args)
 }
 
-func (eCmd *EditCommand) GenerateTodoItem() (domain.TodoItem, error) {
-	ret := domain.NewTodoItem(domain.WithPriorityLevel(domain.None))
+func (eCmd *EditCommand) GenerateTodoItem() (godoo.TodoItem, error) {
+	ret := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 
 	if !eCmd.getNewVals { // searching
 		ret.Id = eCmd.id
@@ -196,11 +196,11 @@ func (eCmd *EditCommand) getAdditionalInput() error {
 func (eCmd *EditCommand) Run(w io.Writer) error {
 
 	eCmd.getAdditionalInput()
-	srchQryLst, err := eCmd.determineQueryType(domain.Get)
+	srchQryLst, err := eCmd.determineQueryType(godoo.Get)
 	if err != nil {
 		return err
 	}
-	edtQryLst, err := eCmd.determineQueryType(domain.Update)
+	edtQryLst, err := eCmd.determineQueryType(godoo.Update)
 	if err != nil {
 		return err
 	}
@@ -225,64 +225,64 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 	return nil
 }
 
-func (eCmd *EditCommand) determineQueryType(qType domain.QueryType) ([]domain.UserQuery, error) {
-	var ret []domain.UserQuery
+func (eCmd *EditCommand) determineQueryType(qType godoo.QueryType) ([]godoo.UserQuery, error) {
+	var ret []godoo.UserQuery
 
 	switch qType {
-	case domain.Get:
+	case godoo.Get:
 		// by id numbers
 		if eCmd.id != 0 {
-			ret = append(ret, domain.UserQuery{Elem: domain.ById})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ById})
 		}
 		if eCmd.childOf != 0 {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByParentId})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByParentId})
 		}
 
 		// by string
 		if eCmd.tagInput != "" {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByTag})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByTag})
 		}
 		if eCmd.body != "" {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByBody})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByBody})
 		}
 
 		// by times
 		if eCmd.deadline != "" {
 			f := getDateBoundFunc(eCmd.deadline, eCmd.appCtx.DateLayout)
-			ret = append(ret, domain.UserQuery{Elem: domain.ByDeadline, DateSetter: f})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByDeadline, DateSetter: f})
 		}
 		if eCmd.creationDate != "" {
 			f := getDateBoundFunc(eCmd.creationDate, eCmd.appCtx.DateLayout)
-			ret = append(ret, domain.UserQuery{Elem: domain.ByCreationDate, DateSetter: f})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByCreationDate, DateSetter: f})
 		}
 		if eCmd.complete {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByCompletion})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByCompletion})
 		}
-	case domain.Update:
+	case godoo.Update:
 		if eCmd.newParent != 0 {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByParentId})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByParentId})
 		}
 
 		// by string
 		if eCmd.newTag != "" {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByTag})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByTag})
 		}
 		if eCmd.newBody != "" {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByBody})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByBody})
 		}
 
 		// by times
 		if eCmd.newDeadline != "" {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByDeadline})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByDeadline})
 		}
 		if eCmd.appending {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByAppending})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByAppending})
 		}
 		if eCmd.replacing {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByReplacement})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByReplacement})
 		}
 		if eCmd.newlyComplete {
-			ret = append(ret, domain.UserQuery{Elem: domain.ByCompletion})
+			ret = append(ret, godoo.UserQuery{Elem: godoo.ByCompletion})
 		}
 	}
 

@@ -1,20 +1,20 @@
-package application
+package main_test
 
 import (
 	"fmt"
 	"testing"
 
-	d "github.com/mundacity/go-doo/domain"
+	godoo "github.com/mundacity/go-doo"
 )
 
 type test_case struct {
 	Id   int
-	Item d.TodoItem
+	Item godoo.TodoItem
 	Name string
 }
 
 func TestValidListCreateion(t *testing.T) {
-	lst := NewSimpleList()
+	lst := godoo.NewSimpleList()
 
 	if lst.List != nil {
 		t.Log("\n\t>>>>PASSED: SimpleList created")
@@ -24,8 +24,8 @@ func TestValidListCreateion(t *testing.T) {
 }
 
 func TestAddToList(t *testing.T) {
-	sl := NewSimpleList()
-	itm := d.NewTodoItem(d.WithPriorityLevel(d.None))
+	sl := godoo.NewSimpleList()
+	itm := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 	itm.Id = 1
 
 	err := sl.Add(*itm)
@@ -46,7 +46,7 @@ func getText(result bool) string {
 	return t + "FAILED: "
 }
 
-func getTestCases() []test_case {
+func getListTestCases() []test_case {
 	lst := []int{1, 3, 17, 889, 10471}
 	return getSlice(lst)
 }
@@ -54,7 +54,7 @@ func getTestCases() []test_case {
 func getSlice(lst []int) []test_case {
 	var tcLst []test_case
 	for i := range lst {
-		td := d.NewTodoItem(d.WithPriorityLevel(d.None))
+		td := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 		tc := test_case{Id: i, Item: *td, Name: fmt.Sprintf("body from nil to: %v", i)}
 		tcLst = append(tcLst, tc)
 	}
@@ -62,7 +62,7 @@ func getSlice(lst []int) []test_case {
 }
 
 func TestEditingItmes(t *testing.T) {
-	tcs := getTestCases()
+	tcs := getListTestCases()
 
 	for _, tc := range tcs {
 		s := fmt.Sprintf("new body = %v", tc.Id)
@@ -72,7 +72,7 @@ func TestEditingItmes(t *testing.T) {
 	}
 }
 
-func testEdit(t *testing.T, itm *d.TodoItem, newBody string) {
+func testEdit(t *testing.T, itm *godoo.TodoItem, newBody string) {
 	old := itm.Body
 	itm.Body = newBody
 
@@ -84,17 +84,17 @@ func testEdit(t *testing.T, itm *d.TodoItem, newBody string) {
 }
 
 func TestAddExistingId(t *testing.T) {
-	tcs := getTestCases()
+	tcs := getListTestCases()
 	existingId := tcs[0].Id
 
-	pl := NewPriorityList()
+	pl := godoo.NewPriorityList()
 	for _, itm := range tcs {
-		td := d.NewTodoItem(d.WithPriorityLevel(d.None))
+		td := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 		td.Id = itm.Id
 		pl.Add(*td)
 	}
 
-	td2 := d.NewTodoItem(d.WithPriorityLevel(d.None))
+	td2 := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 	td2.Id = existingId
 
 	err := pl.Add(*td2)

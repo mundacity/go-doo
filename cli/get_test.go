@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mundacity/go-doo/domain"
+	godoo "github.com/mundacity/go-doo"
 )
 
 type get_test_case struct {
@@ -18,8 +18,8 @@ type get_test_case struct {
 type get_query_build_test_case struct {
 	input      GetCommand
 	name       string
-	expSrchLst []domain.UserQueryElement
-	expSrchItm domain.TodoItem
+	expSrchLst []godoo.UserQueryElement
+	expSrchItm godoo.TodoItem
 }
 
 func _getTestCasesForGetting() []get_test_case {
@@ -50,37 +50,37 @@ func getGetQueryBuildTestCases() []get_query_build_test_case {
 	return []get_query_build_test_case{{
 		input:      GetCommand{getAll: true},
 		name:       "get all",
-		expSrchLst: []domain.UserQueryElement{},
+		expSrchLst: []godoo.UserQueryElement{},
 		expSrchItm: *getTodoItm([]any{nil, nil, nil, nil, nil, false}),
 	}, {
 		input:      GetCommand{getAll: true, toggleComplete: true},
 		name:       "get all incomplete",
-		expSrchLst: []domain.UserQueryElement{domain.ByCompletion},
+		expSrchLst: []godoo.UserQueryElement{godoo.ByCompletion},
 		expSrchItm: *getTodoItm([]any{nil, nil, nil, nil, nil, false}),
 	}, {
 		input:      GetCommand{getAll: true, complete: true},
 		name:       "get all complete",
-		expSrchLst: []domain.UserQueryElement{domain.ByCompletion},
+		expSrchLst: []godoo.UserQueryElement{godoo.ByCompletion},
 		expSrchItm: *getTodoItm([]any{nil, nil, nil, nil, nil, true}),
 	}, {
 		input:      GetCommand{bodyPhrase: "edit command", childOf: 99, tagInput: "test"},
 		name:       "body child tag",
-		expSrchLst: []domain.UserQueryElement{domain.ByBody, domain.ByParentId, domain.ByTag},
+		expSrchLst: []godoo.UserQueryElement{godoo.ByBody, godoo.ByParentId, godoo.ByTag},
 		expSrchItm: *getTodoItm([]any{nil, 99, "edit command", "test", nil, false}),
 	}, {
 		input:      GetCommand{id: 15},
 		name:       "id",
-		expSrchLst: []domain.UserQueryElement{domain.ById},
+		expSrchLst: []godoo.UserQueryElement{godoo.ById},
 		expSrchItm: *getTodoItm([]any{15, nil, nil, nil, nil, false}),
 	}, {
 		input:      GetCommand{bodyPhrase: "multiple", complete: true, childOf: 8},
 		name:       "body complete child",
-		expSrchLst: []domain.UserQueryElement{domain.ByBody, domain.ByCompletion, domain.ByParentId},
+		expSrchLst: []godoo.UserQueryElement{godoo.ByBody, godoo.ByCompletion, godoo.ByParentId},
 		expSrchItm: *getTodoItm([]any{nil, 8, "multiple", nil, nil, true}),
 	}, {
 		input:      GetCommand{complete: true},
 		name:       "completion",
-		expSrchLst: []domain.UserQueryElement{domain.ByCompletion},
+		expSrchLst: []godoo.UserQueryElement{godoo.ByCompletion},
 		expSrchItm: *getTodoItm([]any{nil, nil, nil, nil, nil, true}),
 	}}
 }

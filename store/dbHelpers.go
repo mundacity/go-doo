@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mundacity/go-doo/domain"
+	godoo "github.com/mundacity/go-doo"
 )
 
 type table int
@@ -21,7 +21,7 @@ const (
 type Repo struct {
 	db   *sql.DB
 	dl   string
-	kind domain.DbType
+	kind godoo.DbType
 }
 
 // Helps when scanning
@@ -42,8 +42,8 @@ type where_map_entry struct {
 }
 
 // Get TodoItem from temp_item
-func (r *Repo) tempConversion(tmp temp_item) domain.TodoItem {
-	var ret domain.TodoItem
+func (r *Repo) tempConversion(tmp temp_item) godoo.TodoItem {
+	var ret godoo.TodoItem
 	ret.Tags = make(map[string]struct{})
 
 	ret.Id = tmp.id
@@ -57,22 +57,22 @@ func (r *Repo) tempConversion(tmp temp_item) domain.TodoItem {
 	return ret
 }
 
-func getSql(qType domain.QueryType, dbKind domain.DbType, tbl table) string {
+func getSql(qType godoo.QueryType, dbKind godoo.DbType, tbl table) string {
 	switch qType {
-	case domain.Add:
+	case godoo.Add:
 		return getInsertSql(dbKind, tbl)
-	case domain.Get:
+	case godoo.Get:
 		return getSelectSql(dbKind, tbl)
-	case domain.Update:
+	case godoo.Update:
 		return getBaseUpdateSql(dbKind, tbl)
 	default:
 		return ""
 	}
 }
 
-func getInsertSql(db domain.DbType, tbl table) string {
+func getInsertSql(db godoo.DbType, tbl table) string {
 	switch db {
-	case domain.Sqlite:
+	case godoo.Sqlite:
 		if tbl == items {
 			return "insert into items (parentId, creationDate, deadline, body) values (?, ?, ?, ?)"
 		} else if tbl == tags {
@@ -82,10 +82,10 @@ func getInsertSql(db domain.DbType, tbl table) string {
 	return ""
 }
 
-func getSelectSql(db domain.DbType, tbl table) string {
+func getSelectSql(db godoo.DbType, tbl table) string {
 	// table doesn't matter atm
 	switch db {
-	case domain.Sqlite:
+	case godoo.Sqlite:
 		return "select i.id, parentId, creationDate, deadline, body, isComplete, ifnull(tag, '') tag " +
 			"from items i left join tags t " +
 			"on i.id = t.itemId"
@@ -93,7 +93,7 @@ func getSelectSql(db domain.DbType, tbl table) string {
 	return ""
 }
 
-func getBaseUpdateSql(db domain.DbType, tbl table) string {
+func getBaseUpdateSql(db godoo.DbType, tbl table) string {
 	switch tbl {
 	case items:
 		return "update items as i set "
@@ -105,8 +105,8 @@ func getBaseUpdateSql(db domain.DbType, tbl table) string {
 	return ""
 }
 
-func (sr *Repo) processQuery(all *sql.Rows, mp map[int]*domain.TodoItem) ([]domain.TodoItem, error) {
-	var ret []domain.TodoItem
+func (sr *Repo) processQuery(all *sql.Rows, mp map[int]*godoo.TodoItem) ([]godoo.TodoItem, error) {
+	var ret []godoo.TodoItem
 
 	defer all.Close()
 	for all.Next() {
@@ -138,8 +138,8 @@ func (sr *Repo) processQuery(all *sql.Rows, mp map[int]*domain.TodoItem) ([]doma
 }
 
 func (r *Repo) assembleUpdateData(sql string,
-	srchOptions, edtOptions []domain.UserQuery,
-	selector, newVals domain.TodoItem) (string, []any) {
+	srchOptions, edtOptions []godoo.UserQuery,
+	selector, newVals godoo.TodoItem) (string, []any) {
 
 	updateLst := getWhereList(edtOptions, newVals)  // to generate 'a-h' in 'update items set a=b, c=d, e=f, g=h where x'
 	whereLst := getWhereList(srchOptions, selector) // to generate 'x' in above
@@ -187,15 +187,15 @@ func buildAndWhere(input []where_map_entry, sqlBase string) (string, []any) {
 	return sqlBase, vals
 }
 
-func buildUpdatePairs(input []where_map_entry, sqlBase string, options []domain.UserQuery) (string, []any) {
+func buildUpdatePairs(input []where_map_entry, sqlBase string, options []godoo.UserQuery) (string, []any) {
 	var appending, replacing bool
 
 	for _, o := range options {
-		if o.Elem == domain.ByAppending {
+		if o.Elem == godoo.ByAppending {
 			appending = true
 			break
 		}
-		if o.Elem == domain.ByReplacement {
+		if o.Elem == godoo.ByReplacement {
 			replacing = true
 		}
 	}

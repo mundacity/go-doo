@@ -6,10 +6,10 @@ import (
 	"errors"
 	"os"
 
-	"github.com/mundacity/go-doo/domain"
+	godoo "github.com/mundacity/go-doo"
 )
 
-func Init(path string, dbKind domain.DbType) (*sql.DB, error) {
+func Init(path string, dbKind godoo.DbType) (*sql.DB, error) {
 
 	var newDb bool
 	if _, err := os.Stat(path); err != nil {
@@ -18,7 +18,7 @@ func Init(path string, dbKind domain.DbType) (*sql.DB, error) {
 	}
 
 	switch dbKind {
-	case domain.Sqlite:
+	case godoo.Sqlite:
 		return returnSqliteDb(path, newDb), nil
 	}
 
