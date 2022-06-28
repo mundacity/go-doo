@@ -3,6 +3,7 @@ DATETIME_FORMAT = "2006-01-02"
 MAX_LENGTH = 2000
 MAX_INT_DIGITS = 4
 TAG_DELIMITER = "*"
+DB_TYPE = "sqlite"
 CONNECTION_STRING = "/path/to/db/folder/go-doo.db"
 TESTING_CONN = "/path/to/testing/db/folder/go-doo-testing.db"
 DEVELOPMENT = true

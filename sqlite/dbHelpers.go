@@ -1,4 +1,4 @@
-package store
+package sqlite
 
 import (
 	"database/sql"
@@ -8,6 +8,11 @@ import (
 	godoo "github.com/mundacity/go-doo"
 )
 
+// Encapsulates everything that isn't specific to a given db vendor
+//
+// Vendor-specific logic etc located in separate subfolders
+
+// Enum to decribe which db Table/s to work with
 type table int
 
 const (
@@ -16,15 +21,14 @@ const (
 	all
 )
 
-// Encapsulates the various IRepository methods
-// for a sqlite database
+// Basic type to encapsulate the various IRepository methods
 type Repo struct {
 	db   *sql.DB
 	dl   string
 	kind godoo.DbType
 }
 
-// Helps when scanning
+// Helps when scanning using sql.Rows.Scan
 type temp_item struct {
 	id           int
 	parentId     int

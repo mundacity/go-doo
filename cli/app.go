@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	godoo "github.com/mundacity/go-doo"
+	"github.com/mundacity/go-doo/sqlite"
 	"github.com/spf13/viper"
 )
 
@@ -105,6 +106,7 @@ func (app *AppContext) config() {
 	viper.SetDefault("TAG_DELIMITER", "*")
 	viper.SetDefault("DATETIME_FORMAT", "2006-01-02")
 	viper.SetDefault("INSTANCE_TYPE", 0)
+	viper.SetDefault("DB_TYPE", "sqlite")
 
 	viper.SetConfigName("env")
 	viper.SetConfigType("env")
@@ -125,7 +127,7 @@ func (app *AppContext) config() {
 	}
 
 	app.DateLayout = viper.GetString("DATETIME_FORMAT")
-	app.todoRepo = GetRepo(godoo.Sqlite, app.conn, app.DateLayout)
+	app.todoRepo = GetRepo(getDbKind(viper.GetString("DB_TYPE")), app.conn, app.DateLayout)
 }
 
 func _getBasicCommand(ctx *AppContext) (ICommand, error) {
@@ -145,4 +147,21 @@ func _getBasicCommand(ctx *AppContext) (ICommand, error) {
 		return nil, errors.New("invalid command")
 	}
 	return cmd, err
+}
+
+func getDbKind(k string) godoo.DbType {
+	switch k {
+	case "sqlite":
+		return godoo.Sqlite
+	default:
+		return godoo.Sqlite
+	}
+}
+
+func GetRepo(dbKind godoo.DbType, connStr, dateLayout string) godoo.IRepository {
+	switch dbKind {
+	case godoo.Sqlite:
+		return sqlite.NewRepo(connStr, dbKind, dateLayout)
+	}
+	return nil
 }

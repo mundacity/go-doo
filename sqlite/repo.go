@@ -1,7 +1,9 @@
-package store
+package sqlite
 
 import (
 	"context"
+	"database/sql"
+	"os"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -10,9 +12,20 @@ import (
 )
 
 func NewRepo(conn string, dbKind godoo.DbType, dateLayout string) *Repo {
-	Db, _ := Init(conn, dbKind)
+	Db := setup(conn)
 	r := Repo{db: Db, dl: dateLayout, kind: dbKind}
 	return &r
+}
+
+func setup(path string) *sql.DB {
+
+	var newDb bool
+	if _, err := os.Stat(path); err != nil {
+		newDb = true
+		os.Create(path)
+	}
+
+	return returnSqliteDb(path, newDb)
 }
 
 func (r *Repo) Add(itm *godoo.TodoItem) (int64, error) {
