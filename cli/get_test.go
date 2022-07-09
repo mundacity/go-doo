@@ -99,7 +99,7 @@ func _runGetTest(t *testing.T, tc get_test_case) {
 
 	//_quickTest(tc)
 
-	app, _ := Init(tc.args)
+	app, _ := setup(tc.args)
 	gCmd, _ := NewGetCommand(app)
 	nowStr := returnNowString()
 	gCmd.parser.NowMoment, _ = time.Parse(gCmd.appCtx.DateLayout, nowStr)

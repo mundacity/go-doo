@@ -61,42 +61,12 @@ type AppContext struct {
 	tagDemlim  string
 }
 
-// Init sets up the appContext to be used in
+// init sets up the appContext to be used in
 // properly executing user commands
-func Init(osArgs []string) (*AppContext, error) {
-
+func setup(osArgs []string) (*AppContext, error) {
 	app := AppContext{args: osArgs}
 	app.config()
 	return &app, nil
-}
-
-func RunApp(osArgs []string, w io.Writer) int {
-
-	app, err := Init(osArgs)
-	if err != nil {
-		fmt.Printf("%v", err)
-		return 2
-	}
-
-	cmd, err := _getBasicCommand(app)
-	if err != nil {
-		fmt.Printf("%v", err)
-		return 2
-	}
-
-	err = cmd.ParseFlags()
-	if err != nil {
-		fmt.Printf("error: '%v'", err)
-		return 2
-	}
-
-	err = cmd.Run(w)
-	if err != nil {
-		fmt.Printf("error: '%v'", err)
-		return 2
-	}
-
-	return 0
 }
 
 func (app *AppContext) config() {
@@ -130,7 +100,36 @@ func (app *AppContext) config() {
 	app.todoRepo = getRepo(getDbKind(viper.GetString("DB_TYPE")), app.conn, app.DateLayout)
 }
 
-func _getBasicCommand(ctx *AppContext) (ICommand, error) {
+func RunApp(osArgs []string, w io.Writer) int {
+
+	app, err := setup(osArgs)
+	if err != nil {
+		fmt.Printf("%v", err)
+		return 2
+	}
+
+	cmd, err := getBasicCommand(app)
+	if err != nil {
+		fmt.Printf("%v", err)
+		return 2
+	}
+
+	err = cmd.ParseFlags()
+	if err != nil {
+		fmt.Printf("error: '%v'", err)
+		return 2
+	}
+
+	err = cmd.Run(w)
+	if err != nil {
+		fmt.Printf("error: '%v'", err)
+		return 2
+	}
+
+	return 0
+}
+
+func getBasicCommand(ctx *AppContext) (ICommand, error) {
 	arg1 := ctx.args[0]
 	ctx.args = ctx.args[1:]
 	var cmd ICommand

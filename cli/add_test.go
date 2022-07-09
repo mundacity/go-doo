@@ -83,7 +83,7 @@ func _runAddTest(t *testing.T, tc add_test_case) {
 
 	//_quickTest(tc)
 
-	app, _ := Init(tc.args)
+	app, _ := setup(tc.args)
 	addCmd, _ := NewAddCommand(app)
 	nowStr := returnNowString()
 	addCmd.parser.NowMoment, _ = time.Parse(addCmd.appCtx.DateLayout, nowStr)
