@@ -127,7 +127,7 @@ func (app *AppContext) config() {
 	}
 
 	app.DateLayout = viper.GetString("DATETIME_FORMAT")
-	app.todoRepo = GetRepo(getDbKind(viper.GetString("DB_TYPE")), app.conn, app.DateLayout)
+	app.todoRepo = getRepo(getDbKind(viper.GetString("DB_TYPE")), app.conn, app.DateLayout)
 }
 
 func _getBasicCommand(ctx *AppContext) (ICommand, error) {
@@ -158,7 +158,7 @@ func getDbKind(k string) godoo.DbType {
 	}
 }
 
-func GetRepo(dbKind godoo.DbType, connStr, dateLayout string) godoo.IRepository {
+func getRepo(dbKind godoo.DbType, connStr, dateLayout string) godoo.IRepository {
 	switch dbKind {
 	case godoo.Sqlite:
 		return sqlite.NewRepo(connStr, dbKind, dateLayout)
