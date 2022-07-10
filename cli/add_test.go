@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -132,10 +131,6 @@ func compareTestResults(expected, got godoo.TodoItem) (bool, string) {
 		}
 	}
 	return true, ""
-}
-
-func quickTest(tc add_test_case) {
-	RunCli(tc.args, os.Stdout)
 }
 
 func returnNowString() string {
