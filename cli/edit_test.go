@@ -209,7 +209,7 @@ func runQueryBuildTests(t *testing.T, tc edit_query_build_test_case) {
 	}
 }
 
-func compareQueryElemsLists(lst1 []godoo.UserQueryElement, lst2 []godoo.UserQuery) (bool, string) {
+func compareQueryElemsLists(lst1 []godoo.UserQueryElement, lst2 []godoo.UserQueryOption) (bool, string) {
 	if len(lst1) != len(lst2) {
 		return false, "list length differs"
 	}

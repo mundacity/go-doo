@@ -211,7 +211,10 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 	newVals, _ := eCmd.GenerateTodoItem()
 	eCmd.getNewVals = false
 
-	num, err := eCmd.appCtx.TodoRepo.UpdateWhere(srchQryLst, edtQryLst, toEdit, newVals)
+	srchFq := godoo.FullUserQuery{QueryOptions: srchQryLst, QueryData: toEdit}
+	edtFq := godoo.FullUserQuery{QueryOptions: edtQryLst, QueryData: newVals}
+
+	num, err := eCmd.appCtx.TodoRepo.UpdateWhere(srchFq, edtFq)
 	if err != nil {
 		return err
 	}
@@ -226,64 +229,64 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 	return nil
 }
 
-func (eCmd *EditCommand) determineQueryType(qType godoo.QueryType) ([]godoo.UserQuery, error) {
-	var ret []godoo.UserQuery
+func (eCmd *EditCommand) determineQueryType(qType godoo.QueryType) ([]godoo.UserQueryOption, error) {
+	var ret []godoo.UserQueryOption
 
 	switch qType {
 	case godoo.Get:
 		// by id numbers
 		if eCmd.id != 0 {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ById})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ById})
 		}
 		if eCmd.childOf != 0 {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByParentId})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByParentId})
 		}
 
 		// by string
 		if eCmd.tagInput != "" {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByTag})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByTag})
 		}
 		if eCmd.body != "" {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByBody})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByBody})
 		}
 
 		// by times
 		if eCmd.deadline != "" {
 			f := getDateBoundFunc(eCmd.deadline, eCmd.appCtx.DateLayout)
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByDeadline, DateSetter: f})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByDeadline, DateSetter: f})
 		}
 		if eCmd.creationDate != "" {
 			f := getDateBoundFunc(eCmd.creationDate, eCmd.appCtx.DateLayout)
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByCreationDate, DateSetter: f})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCreationDate, DateSetter: f})
 		}
 		if eCmd.complete {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByCompletion})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCompletion})
 		}
 	case godoo.Update:
 		if eCmd.newParent != 0 {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByParentId})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByParentId})
 		}
 
 		// by string
 		if eCmd.newTag != "" {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByTag})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByTag})
 		}
 		if eCmd.newBody != "" {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByBody})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByBody})
 		}
 
 		// by times
 		if eCmd.newDeadline != "" {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByDeadline})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByDeadline})
 		}
 		if eCmd.appending {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByAppending})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByAppending})
 		}
 		if eCmd.replacing {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByReplacement})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByReplacement})
 		}
 		if eCmd.newlyComplete {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByCompletion})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCompletion})
 		}
 	}
 

@@ -157,7 +157,9 @@ func (gCmd *GetCommand) Run(w io.Writer) error {
 		return err
 	}
 
-	itms, err = gCmd.appCtx.TodoRepo.GetWhere(qList, input)
+	fullQry := godoo.FullUserQuery{QueryOptions: qList, QueryData: input}
+
+	itms, err = gCmd.appCtx.TodoRepo.GetWhere(fullQry)
 	if err != nil {
 		return err
 	}
@@ -185,51 +187,51 @@ func (gCmd *GetCommand) getFunc(itms []godoo.TodoItem) func() string {
 	return f
 }
 
-func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQuery, error) {
-	var ret []godoo.UserQuery
+func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQueryOption, error) {
+	var ret []godoo.UserQueryOption
 
 	// by id numbers
 	if gCmd.id != 0 {
-		ret = append(ret, godoo.UserQuery{Elem: godoo.ById})
+		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ById})
 		return ret, nil // no further search params needed; id unique
 	}
 	if gCmd.parentOf != 0 {
-		ret = append(ret, godoo.UserQuery{Elem: godoo.ByChildId})
+		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByChildId})
 		return ret, nil // no further search params needed; only 1 parent possible
 	}
 	if gCmd.childOf != 0 {
-		ret = append(ret, godoo.UserQuery{Elem: godoo.ByParentId})
+		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByParentId})
 	}
 
 	if gCmd.next {
 		if gCmd.deadlineDate == "" {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByNextDate})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByNextDate})
 		} else if gCmd.deadlineDate == "." {
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByNextPriority})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByNextPriority})
 		}
 	}
 
 	// by string
 	if gCmd.tagInput != "" {
-		ret = append(ret, godoo.UserQuery{Elem: godoo.ByTag})
+		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByTag})
 	}
 	if gCmd.bodyPhrase != "" {
-		ret = append(ret, godoo.UserQuery{Elem: godoo.ByBody})
+		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByBody})
 	}
 
 	// by times
 	if gCmd.deadlineDate != "" {
 		if gCmd.deadlineDate != "." {
 			f := getDateBoundFunc(gCmd.deadlineDate, gCmd.appCtx.DateLayout)
-			ret = append(ret, godoo.UserQuery{Elem: godoo.ByDeadline, DateSetter: f})
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByDeadline, DateSetter: f})
 		}
 	}
 	if gCmd.creationDate != "" {
 		f := getDateBoundFunc(gCmd.creationDate, gCmd.appCtx.DateLayout)
-		ret = append(ret, godoo.UserQuery{Elem: godoo.ByCreationDate, DateSetter: f})
+		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCreationDate, DateSetter: f})
 	}
 	if gCmd.complete || gCmd.toggleComplete {
-		ret = append(ret, godoo.UserQuery{Elem: godoo.ByCompletion})
+		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCompletion})
 	}
 
 	return ret, nil

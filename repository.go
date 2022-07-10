@@ -48,16 +48,28 @@ const (
 // 2022-05-01 and 2022-05-15
 type SetUpperDateBound func() (bool, time.Time)
 
-type UserQuery struct {
+// Wrapper for a single UserQueryElement and
+// a SetUpperDateBound function to allow for
+// date range searching
+type UserQueryOption struct {
 	Elem       UserQueryElement
 	DateSetter SetUpperDateBound
 }
 
+// Single query object to combine query options
+// alongside the relevant query data.
+// Ex. ById is the query option and '8' is the
+// query data
+type FullUserQuery struct {
+	QueryOptions []UserQueryOption
+	QueryData    TodoItem
+}
+
 // Defines methods used to interact with data storage
 type IRepository interface {
-	GetWhere(options []UserQuery, input TodoItem) ([]TodoItem, error)
+	GetWhere(query FullUserQuery) ([]TodoItem, error)
 	Add(itm *TodoItem) (int64, error)
-	UpdateWhere(srchOptions, edtOptions []UserQuery, selector, newVals TodoItem) (int, error)
+	UpdateWhere(srchQry, edtQry FullUserQuery) (int, error)
 	// Delete(items ...int) error
 }
 

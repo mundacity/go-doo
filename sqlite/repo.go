@@ -68,12 +68,12 @@ func (r *Repo) Add(itm *godoo.TodoItem) (int64, error) {
 	return id, nil
 }
 
-func (r *Repo) UpdateWhere(srchOptions, edtOptions []godoo.UserQuery, selector, newVals godoo.TodoItem) (int, error) {
+func (r *Repo) UpdateWhere(srchQry, edtQry godoo.FullUserQuery) (int, error) {
 
 	itmSql := getSql(godoo.Update, r.kind, items)
 	//tagSql := "update tags set " // will need to do these separately
 
-	itmSql, data := r.assembleUpdateData(itmSql, srchOptions, edtOptions, selector, newVals)
+	itmSql, data := r.assembleUpdateData(itmSql, srchQry, edtQry)
 
 	tx, err := r.db.BeginTx(context.Background(), nil)
 	if err != nil {
@@ -98,14 +98,14 @@ func (r *Repo) UpdateWhere(srchOptions, edtOptions []godoo.UserQuery, selector, 
 	return int(rows), nil
 }
 
-func (sr *Repo) GetWhere(options []godoo.UserQuery, input godoo.TodoItem) ([]godoo.TodoItem, error) {
+func (sr *Repo) GetWhere(qry godoo.FullUserQuery) ([]godoo.TodoItem, error) {
 
-	if len(options) == 0 {
+	if len(qry.QueryOptions) == 0 {
 		return sr.getAll()
 	}
 
 	mp := make(map[int]*godoo.TodoItem)
-	whereLst := getWhereList(options, input)
+	whereLst := getWhereList(qry)
 	sql, vals := buildAndWhere(whereLst, getSql(godoo.Get, sr.kind, all)+" where ")
 
 	all, err := sr.db.Query(sql, vals...)
@@ -137,15 +137,15 @@ func (r *Repo) getAll() ([]godoo.TodoItem, error) {
 
 }
 
-func getWhereList(options []godoo.UserQuery, input godoo.TodoItem) []where_map_entry {
+func getWhereList(qry godoo.FullUserQuery) []where_map_entry {
 	var lst []where_map_entry
 
-	for _, opt := range options {
+	for _, opt := range qry.QueryOptions {
 		if opt.Elem == godoo.ByAppending || opt.Elem == godoo.ByReplacement {
 			// query modifiers; not query types/options
 			continue
 		}
-		col, val := getColAndVal(opt, input)
+		col, val := getColAndVal(opt, qry.QueryData)
 		if col != "" {
 			lst = append(lst, where_map_entry{col, val})
 		}
@@ -153,7 +153,7 @@ func getWhereList(options []godoo.UserQuery, input godoo.TodoItem) []where_map_e
 	return lst
 }
 
-func getColAndVal(q godoo.UserQuery, input godoo.TodoItem) (string, any) {
+func getColAndVal(q godoo.UserQueryOption, input godoo.TodoItem) (string, any) {
 	switch q.Elem {
 	case godoo.ById:
 		return "i.id", input.Id
@@ -179,7 +179,7 @@ func getColAndVal(q godoo.UserQuery, input godoo.TodoItem) (string, any) {
 	return "", nil
 }
 
-func getDateRange(q godoo.UserQuery, itm godoo.TodoItem) []string {
+func getDateRange(q godoo.UserQueryOption, itm godoo.TodoItem) []string {
 	var ret []string
 	var d time.Time
 	if q.Elem == godoo.ByDeadline {

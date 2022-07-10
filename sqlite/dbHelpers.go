@@ -143,14 +143,12 @@ func (sr *Repo) processQuery(all *sql.Rows, mp map[int]*godoo.TodoItem) ([]godoo
 	return ret, nil
 }
 
-func (r *Repo) assembleUpdateData(sql string,
-	srchOptions, edtOptions []godoo.UserQuery,
-	selector, newVals godoo.TodoItem) (string, []any) {
+func (r *Repo) assembleUpdateData(sql string, srchQry, edtQry godoo.FullUserQuery) (string, []any) {
 
-	updateLst := getWhereList(edtOptions, newVals)  // to generate 'a-h' in 'update items set a=b, c=d, e=f, g=h where x'
-	whereLst := getWhereList(srchOptions, selector) // to generate 'x' in above
+	updateLst := getWhereList(edtQry) // to generate 'a-h' in 'update items set a=b, c=d, e=f, g=h where x'
+	whereLst := getWhereList(srchQry) // to generate 'x' in above
 
-	sql, pairs := buildUpdatePairs(updateLst, sql, edtOptions)
+	sql, pairs := buildUpdatePairs(updateLst, sql, edtQry)
 	sql, vals := buildAndWhere(whereLst, sql+"where ")
 
 	pairs = append(pairs, vals...)
@@ -193,10 +191,10 @@ func buildAndWhere(input []where_map_entry, sqlBase string) (string, []any) {
 	return sqlBase, vals
 }
 
-func buildUpdatePairs(input []where_map_entry, sqlBase string, options []godoo.UserQuery) (string, []any) {
+func buildUpdatePairs(input []where_map_entry, sqlBase string, qry godoo.FullUserQuery) (string, []any) {
 	var appending, replacing bool
 
-	for _, o := range options {
+	for _, o := range qry.QueryOptions {
 		if o.Elem == godoo.ByAppending {
 			appending = true
 			break
