@@ -12,10 +12,11 @@ import (
 
 	fp "github.com/mundacity/flag-parser"
 	godoo "github.com/mundacity/go-doo"
+	"github.com/mundacity/go-doo/app"
 )
 
 type EditCommand struct {
-	appCtx        *AppContext
+	appCtx        *app.AppContext
 	parser        fp.FlagParser
 	fs            *flag.FlagSet
 	getNewVals    bool
@@ -37,7 +38,7 @@ type EditCommand struct {
 	//mode priorityMode TODO
 }
 
-func NewEditCommand(ctx *AppContext) (*EditCommand, error) {
+func NewEditCommand(ctx *app.AppContext) (*EditCommand, error) {
 	eCmd := EditCommand{appCtx: ctx, fs: flag.NewFlagSet("edit", flag.ContinueOnError)}
 
 	// selectors to determine which items to edit
@@ -60,7 +61,7 @@ func NewEditCommand(ctx *AppContext) (*EditCommand, error) {
 	eCmd.fs.StringVar(&eCmd.newBody, strings.Trim(string(changeBody), "-"), "", "change item/s body")
 	eCmd.fs.IntVar(&eCmd.newParent, strings.Trim(string(changeParent), "-"), 0, "change item/s parent id")
 
-	err := eCmd.SetupFlagMapper(ctx.args)
+	err := eCmd.SetupFlagMapper(ctx.Args)
 	return &eCmd, err
 }
 
@@ -83,8 +84,8 @@ func (eCmd *EditCommand) SetupFlagMapper(userFlags []string) error {
 func (eCmd *EditCommand) GetValidFlags() ([]fp.FlagInfo, error) {
 	var ret []fp.FlagInfo
 
-	maxIntDigits := eCmd.appCtx.intDigits
-	lenMax := eCmd.appCtx.maxLen
+	maxIntDigits := eCmd.appCtx.IntDigits
+	lenMax := eCmd.appCtx.MaxLen
 
 	f1 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
 	f2 := fp.FlagInfo{FlagName: string(itmId), FlagType: fp.Integer, MaxLen: maxIntDigits}
@@ -115,8 +116,8 @@ func (eCmd *EditCommand) ParseFlags() error {
 		return err
 	}
 
-	eCmd.appCtx.args = newArgs
-	return eCmd.fs.Parse(eCmd.appCtx.args)
+	eCmd.appCtx.Args = newArgs
+	return eCmd.fs.Parse(eCmd.appCtx.Args)
 }
 
 func (eCmd *EditCommand) GenerateTodoItem() (godoo.TodoItem, error) {
@@ -210,7 +211,7 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 	newVals, _ := eCmd.GenerateTodoItem()
 	eCmd.getNewVals = false
 
-	num, err := eCmd.appCtx.todoRepo.UpdateWhere(srchQryLst, edtQryLst, toEdit, newVals)
+	num, err := eCmd.appCtx.TodoRepo.UpdateWhere(srchQryLst, edtQryLst, toEdit, newVals)
 	if err != nil {
 		return err
 	}

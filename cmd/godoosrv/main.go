@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/mundacity/go-doo/cli"
+	"github.com/mundacity/go-doo/app"
 )
 
 func main() {
@@ -14,7 +14,7 @@ func main() {
 		path = ".\\data.json"
 	}
 
-	cli.SetSrvContext()
+	app.SetSrvContext()
 
 	mux := http.NewServeMux()
 	// mux.HandleFunc("/healthcheck", handlers.HealthCheckHandler)

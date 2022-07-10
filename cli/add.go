@@ -9,12 +9,13 @@ import (
 
 	fp "github.com/mundacity/flag-parser"
 	godoo "github.com/mundacity/go-doo"
+	"github.com/mundacity/go-doo/app"
 	"github.com/mundacity/go-doo/util"
 )
 
 // Lets user add new items
 type AddCommand struct {
-	appCtx       *AppContext
+	appCtx       *app.AppContext
 	parser       fp.FlagParser
 	fs           *flag.FlagSet
 	mode         priorityMode
@@ -38,8 +39,8 @@ const (
 func (aCmd *AddCommand) GetValidFlags() ([]fp.FlagInfo, error) { // too tired to come up with anything more elegant - todo!
 	var ret []fp.FlagInfo
 
-	lenMax := aCmd.appCtx.maxLen
-	maxIntDigits := aCmd.appCtx.intDigits
+	lenMax := aCmd.appCtx.MaxLen
+	maxIntDigits := aCmd.appCtx.IntDigits
 
 	f2 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
 	f3 := fp.FlagInfo{FlagName: string(mode), FlagType: fp.Str, MaxLen: 1}
@@ -52,7 +53,7 @@ func (aCmd *AddCommand) GetValidFlags() ([]fp.FlagInfo, error) { // too tired to
 	return ret, nil
 }
 
-func NewAddCommand(ctx *AppContext) (*AddCommand, error) {
+func NewAddCommand(ctx *app.AppContext) (*AddCommand, error) {
 	addCmd := AddCommand{appCtx: ctx, fs: flag.NewFlagSet("add", flag.ContinueOnError)}
 
 	addCmd.fs.StringVar((*string)(&addCmd.mode), strings.Trim(string(mode), "-"), string(none), "mode of operation: deadline, priority, none (default)")
@@ -62,7 +63,7 @@ func NewAddCommand(ctx *AppContext) (*AddCommand, error) {
 	addCmd.fs.IntVar(&addCmd.parentOf, strings.Trim(string(parent), "-"), 0, "make item a parent of another item")
 	addCmd.fs.StringVar(&addCmd.deadlineDate, strings.Trim(string(deadline), "-"), "", "when item needs to be completed by")
 
-	err := addCmd.SetupFlagMapper(ctx.args)
+	err := addCmd.SetupFlagMapper(ctx.Args)
 
 	return &addCmd, err
 }
@@ -96,15 +97,15 @@ func (aCmd *AddCommand) ParseFlags() error {
 		return err
 	}
 
-	aCmd.appCtx.args = newArgs
-	return aCmd.fs.Parse(aCmd.appCtx.args)
+	aCmd.appCtx.Args = newArgs
+	return aCmd.fs.Parse(aCmd.appCtx.Args)
 }
 
 // Run implements method from ICommand interface
 func (aCmd *AddCommand) Run(w io.Writer) error {
 	td, _ := aCmd.GenerateTodoItem()
 
-	id, err := aCmd.appCtx.todoRepo.Add(&td)
+	id, err := aCmd.appCtx.TodoRepo.Add(&td)
 	if err != nil {
 		return err
 	}
@@ -144,7 +145,7 @@ func (aCmd *AddCommand) GenerateTodoItem() (godoo.TodoItem, error) {
 	td.CreationDate = time.Now()
 	td.ParentId = aCmd.childOf
 
-	parseTagInput(&td, aCmd.tagInput, aCmd.appCtx.tagDemlim)
+	parseTagInput(&td, aCmd.tagInput, aCmd.appCtx.TagDemlim)
 	return td, nil
 }
 

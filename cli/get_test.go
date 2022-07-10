@@ -6,6 +6,7 @@ import (
 	"time"
 
 	godoo "github.com/mundacity/go-doo"
+	"github.com/mundacity/go-doo/app"
 )
 
 type get_test_case struct {
@@ -97,9 +98,7 @@ func TestGetting(t *testing.T) {
 
 func _runGetTest(t *testing.T, tc get_test_case) {
 
-	//_quickTest(tc)
-
-	app, _ := setup(tc.args)
+	app, _ := app.SetupCli(tc.args)
 	gCmd, _ := NewGetCommand(app)
 	nowStr := returnNowString()
 	gCmd.parser.NowMoment, _ = time.Parse(gCmd.appCtx.DateLayout, nowStr)

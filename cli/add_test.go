@@ -8,6 +8,7 @@ import (
 	"time"
 
 	godoo "github.com/mundacity/go-doo"
+	"github.com/mundacity/go-doo/app"
 	"github.com/mundacity/go-doo/util"
 )
 
@@ -83,7 +84,7 @@ func _runAddTest(t *testing.T, tc add_test_case) {
 
 	//_quickTest(tc)
 
-	app, _ := setup(tc.args)
+	app, _ := app.SetupCli(tc.args)
 	addCmd, _ := NewAddCommand(app)
 	nowStr := returnNowString()
 	addCmd.parser.NowMoment, _ = time.Parse(addCmd.appCtx.DateLayout, nowStr)

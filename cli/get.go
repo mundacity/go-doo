@@ -10,11 +10,12 @@ import (
 	fp "github.com/mundacity/flag-parser"
 	godoo "github.com/mundacity/go-doo"
 
+	"github.com/mundacity/go-doo/app"
 	"github.com/mundacity/go-doo/util"
 )
 
 type GetCommand struct {
-	appCtx         *AppContext
+	appCtx         *app.AppContext
 	parser         fp.FlagParser
 	fs             *flag.FlagSet
 	id             int
@@ -30,7 +31,7 @@ type GetCommand struct {
 	toggleComplete bool
 }
 
-func NewGetCommand(ctx *AppContext) (*GetCommand, error) {
+func NewGetCommand(ctx *app.AppContext) (*GetCommand, error) {
 	getCmd := GetCommand{appCtx: ctx, fs: flag.NewFlagSet("get", flag.ContinueOnError)}
 
 	getCmd.fs.IntVar(&getCmd.id, strings.Trim(string(itmId), "-"), 0, "search by item id")
@@ -53,7 +54,7 @@ func NewGetCommand(ctx *AppContext) (*GetCommand, error) {
 	getCmd.fs.BoolVar(&getCmd.complete, strings.Trim(string(finished), "-"), false, "search for completed items")
 	getCmd.fs.BoolVar(&getCmd.toggleComplete, strings.Trim(string(markComplete), "-"), false, "search for unfinished items")
 
-	err := getCmd.SetupFlagMapper(ctx.args)
+	err := getCmd.SetupFlagMapper(ctx.Args)
 
 	return &getCmd, err
 }
@@ -77,9 +78,9 @@ func (getCmd *GetCommand) SetupFlagMapper(userFlags []string) error {
 func (getCmd *GetCommand) GetValidFlags() ([]fp.FlagInfo, error) {
 	var ret []fp.FlagInfo
 
-	maxIntDigits := getCmd.appCtx.intDigits
+	maxIntDigits := getCmd.appCtx.IntDigits
 
-	lenMax := getCmd.appCtx.maxLen
+	lenMax := getCmd.appCtx.MaxLen
 
 	f8 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
 	f2 := fp.FlagInfo{FlagName: string(itmId), FlagType: fp.Integer, MaxLen: maxIntDigits}
@@ -105,8 +106,8 @@ func (getCmd *GetCommand) ParseFlags() error {
 		return err
 	}
 
-	getCmd.appCtx.args = newArgs
-	return getCmd.fs.Parse(getCmd.appCtx.args)
+	getCmd.appCtx.Args = newArgs
+	return getCmd.fs.Parse(getCmd.appCtx.Args)
 }
 
 func (gCmd *GetCommand) GenerateTodoItem() (godoo.TodoItem, error) {
@@ -156,7 +157,7 @@ func (gCmd *GetCommand) Run(w io.Writer) error {
 		return err
 	}
 
-	itms, err = gCmd.appCtx.todoRepo.GetWhere(qList, input)
+	itms, err = gCmd.appCtx.TodoRepo.GetWhere(qList, input)
 	if err != nil {
 		return err
 	}
