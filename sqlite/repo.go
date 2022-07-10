@@ -11,14 +11,13 @@ import (
 	"github.com/mundacity/go-doo/util"
 )
 
-func NewRepo(conn string, dbKind godoo.DbType, dateLayout string) *Repo {
+func SetupRepo(conn string, dbKind godoo.DbType, dateLayout string) *Repo {
 	Db := setup(conn)
-	r := Repo{db: Db, dl: dateLayout, kind: dbKind}
-	return &r
+	AppRepo = Repo{db: Db, dl: dateLayout, kind: dbKind}
+	return &AppRepo
 }
 
 func setup(path string) *sql.DB {
-
 	var newDb bool
 	if _, err := os.Stat(path); err != nil {
 		newDb = true

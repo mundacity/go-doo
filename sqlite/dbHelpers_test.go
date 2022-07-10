@@ -118,7 +118,7 @@ func getResAndDate(yesNo bool, dStr string) godoo.SetUpperDateBound {
 }
 
 func getInMemDb() *Repo {
-	return NewRepo("", godoo.Sqlite, "2006-01-02")
+	return SetupRepo("", godoo.Sqlite, "2006-01-02")
 }
 
 func TestUpdateAssembling(t *testing.T) {

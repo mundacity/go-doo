@@ -160,7 +160,7 @@ func getDbKind(k string) godoo.DbType {
 func getRepo(dbKind godoo.DbType, connStr, dateLayout string) godoo.IRepository {
 	switch dbKind {
 	case godoo.Sqlite:
-		return sqlite.NewRepo(connStr, dbKind, dateLayout)
+		return sqlite.SetupRepo(connStr, dbKind, dateLayout)
 	}
 	return nil
 }

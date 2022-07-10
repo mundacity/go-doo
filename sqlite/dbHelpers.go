@@ -21,6 +21,8 @@ const (
 	all
 )
 
+var AppRepo Repo
+
 // Basic type to encapsulate the various IRepository methods
 type Repo struct {
 	db   *sql.DB
