@@ -189,17 +189,12 @@ func getDateRange(q godoo.UserQueryOption, itm godoo.TodoItem) []string {
 		d = itm.CreationDate
 	}
 
-	if q.DateSetter == nil {
-		ret = append(ret, util.StringFromDate(d))
-		return ret
-	}
-	ok, lower := q.DateSetter()
-	if !ok {
+	if q.UpperBoundDate.IsZero() {
 		ret = append(ret, util.StringFromDate(d))
 		return ret
 	}
 
-	ret = append(ret, util.StringFromDate(d), util.StringFromDate(lower))
+	ret = append(ret, util.StringFromDate(d), util.StringFromDate(q.UpperBoundDate))
 	return ret
 }
 

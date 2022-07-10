@@ -252,12 +252,12 @@ func (eCmd *EditCommand) determineQueryType(qType godoo.QueryType) ([]godoo.User
 
 		// by times
 		if eCmd.deadline != "" {
-			f := getDateBoundFunc(eCmd.deadline, eCmd.appCtx.DateLayout)
-			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByDeadline, DateSetter: f})
+			d := getUpperDateBound(eCmd.deadline, eCmd.appCtx.DateLayout)
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByDeadline, UpperBoundDate: d})
 		}
 		if eCmd.creationDate != "" {
-			f := getDateBoundFunc(eCmd.creationDate, eCmd.appCtx.DateLayout)
-			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCreationDate, DateSetter: f})
+			d := getUpperDateBound(eCmd.creationDate, eCmd.appCtx.DateLayout)
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCreationDate, UpperBoundDate: d})
 		}
 		if eCmd.complete {
 			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCompletion})

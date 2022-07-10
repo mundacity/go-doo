@@ -43,17 +43,12 @@ const (
 	ByCompletion
 )
 
-// Helper function to set upper date bound
-// when querying by date ranges - e.g. between
-// 2022-05-01 and 2022-05-15
-type SetUpperDateBound func() (bool, time.Time)
-
 // Wrapper for a single UserQueryElement and
 // a SetUpperDateBound function to allow for
 // date range searching
 type UserQueryOption struct {
-	Elem       UserQueryElement
-	DateSetter SetUpperDateBound
+	Elem           UserQueryElement `json:"elem"`
+	UpperBoundDate time.Time        `json:"upperBound"`
 }
 
 // Single query object to combine query options
@@ -61,8 +56,8 @@ type UserQueryOption struct {
 // Ex. ById is the query option and '8' is the
 // query data
 type FullUserQuery struct {
-	QueryOptions []UserQueryOption
-	QueryData    TodoItem
+	QueryOptions []UserQueryOption `json:"qryOpts"`
+	QueryData    TodoItem          `json:"qryData"`
 }
 
 // Defines methods used to interact with data storage

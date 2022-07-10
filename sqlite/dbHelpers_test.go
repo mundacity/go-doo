@@ -23,7 +23,7 @@ func getUpdateAssemblingTestCases() []update_data_assembling_test_case {
 
 	return []update_data_assembling_test_case{{
 		sql:      getSql(godoo.Update, godoo.Sqlite, items),
-		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ByDeadline, DateSetter: getResAndDate(true, "2022-01-18")}, {Elem: godoo.ByCreationDate, DateSetter: getResAndDate(true, "2022-01-03")}, {Elem: godoo.ByBody}},
+		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ByDeadline, UpperBoundDate: convertToUpperBound("2022-01-18")}, {Elem: godoo.ByCreationDate, UpperBoundDate: convertToUpperBound("2022-01-03")}, {Elem: godoo.ByBody}},
 		slctr:    godoo.TodoItem{Deadline: parseDate("2022-01-10"), CreationDate: parseDate("2021-12-23"), Body: "z start"},
 		edtOpts:  []godoo.UserQueryOption{{Elem: godoo.ByDeadline}, {Elem: godoo.ByBody}, {Elem: godoo.ByAppending}},
 		newData:  godoo.TodoItem{Deadline: parseDate("2022-02-02"), Body: " dud"},
@@ -41,7 +41,7 @@ func getUpdateAssemblingTestCases() []update_data_assembling_test_case {
 		name:     "add one day to deadline by id",
 	}, {
 		sql:      getSql(godoo.Update, godoo.Sqlite, items),
-		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ByCreationDate}, {Elem: godoo.ByDeadline, DateSetter: getResAndDate(true, "2022-06-22")}},
+		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ByCreationDate}, {Elem: godoo.ByDeadline, UpperBoundDate: convertToUpperBound("2022-06-22")}},
 		slctr:    godoo.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01")},
 		edtOpts:  []godoo.UserQueryOption{{Elem: godoo.ByCompletion}},
 		newData:  godoo.TodoItem{IsComplete: true},
@@ -50,7 +50,7 @@ func getUpdateAssemblingTestCases() []update_data_assembling_test_case {
 		name:     "toggle completion search on set creationDate and deadline range",
 	}, {
 		sql:      getSql(godoo.Update, godoo.Sqlite, items),
-		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ByCreationDate, DateSetter: getResAndDate(true, "2022-06-05")}, {Elem: godoo.ByDeadline, DateSetter: getResAndDate(true, "2022-06-22")}},
+		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ByCreationDate, UpperBoundDate: convertToUpperBound("2022-06-05")}, {Elem: godoo.ByDeadline, UpperBoundDate: convertToUpperBound("2022-06-22")}},
 		slctr:    godoo.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01")},
 		edtOpts:  []godoo.UserQueryOption{{Elem: godoo.ByCompletion}},
 		newData:  godoo.TodoItem{IsComplete: true},
@@ -101,20 +101,9 @@ func parseDate(dStr string) time.Time {
 	return ret
 }
 
-func getResAndDate(yesNo bool, dStr string) godoo.SetUpperDateBound {
-	if yesNo {
-		dt, _ := time.Parse("2006-01-02", dStr)
-		return func() (bool, time.Time) {
-			{
-				return true, dt
-			}
-		}
-	}
-	return func() (bool, time.Time) {
-		{
-			return false, time.Now()
-		}
-	}
+func convertToUpperBound(dStr string) time.Time {
+	dt, _ := time.Parse("2006-01-02", dStr)
+	return dt
 }
 
 func getInMemDb() *Repo {

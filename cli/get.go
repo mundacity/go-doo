@@ -222,13 +222,13 @@ func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQueryOption, error) {
 	// by times
 	if gCmd.deadlineDate != "" {
 		if gCmd.deadlineDate != "." {
-			f := getDateBoundFunc(gCmd.deadlineDate, gCmd.appCtx.DateLayout)
-			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByDeadline, DateSetter: f})
+			d := getUpperDateBound(gCmd.deadlineDate, gCmd.appCtx.DateLayout)
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByDeadline, UpperBoundDate: d})
 		}
 	}
 	if gCmd.creationDate != "" {
-		f := getDateBoundFunc(gCmd.creationDate, gCmd.appCtx.DateLayout)
-		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCreationDate, DateSetter: f})
+		d := getUpperDateBound(gCmd.creationDate, gCmd.appCtx.DateLayout)
+		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCreationDate, UpperBoundDate: d})
 	}
 	if gCmd.complete || gCmd.toggleComplete {
 		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCompletion})
@@ -237,21 +237,15 @@ func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQueryOption, error) {
 	return ret, nil
 }
 
-func getDateBoundFunc(dateText string, dateLayout string) godoo.SetUpperDateBound {
+func getUpperDateBound(dateText string, dateLayout string) time.Time {
 	splt := splitDates(dateText)
-	var f godoo.SetUpperDateBound
+	var d time.Time
 
 	if len(splt) > 1 {
-		f = func() (bool, time.Time) {
-			d, _ := time.Parse(dateLayout, splt[1])
-			return true, d
-		}
-	} else {
-		f = func() (bool, time.Time) {
-			return false, time.Now()
-		}
+		d, _ = time.Parse(dateLayout, splt[1])
 	}
-	return f
+
+	return d
 }
 
 func splitDates(s string) []string {
