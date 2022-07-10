@@ -7,5 +7,5 @@ import (
 )
 
 func main() {
-	os.Exit(cli.RunApp(os.Args[1:], os.Stdout)) // first arg is app name
+	os.Exit(cli.RunCli(os.Args[1:], os.Stdout)) // first arg is app name
 }

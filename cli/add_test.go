@@ -134,7 +134,7 @@ func compareTestResults(expected, got godoo.TodoItem) (bool, string) {
 }
 
 func quickTest(tc add_test_case) {
-	RunApp(tc.args, os.Stdout)
+	RunCli(tc.args, os.Stdout)
 }
 
 func returnNowString() string {

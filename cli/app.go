@@ -65,12 +65,12 @@ type AppContext struct {
 // properly executing user commands
 func setup(osArgs []string) (*AppContext, error) {
 	app := AppContext{args: osArgs}
-	app.config()
+	app.setCliContext()
 	return &app, nil
 }
 
-func (app *AppContext) config() {
-
+// Set default configuration values and read from env file
+func SetConfigVals() {
 	viper.SetDefault("MAX_LENGTH", 2000)
 	viper.SetDefault("MAX_INT_DIGITS", 4)
 	viper.SetDefault("TAG_DELIMITER", "*")
@@ -83,24 +83,37 @@ func (app *AppContext) config() {
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("C:\\fe\\")
 	viper.ReadInConfig()
+}
 
+func (app *AppContext) setCliContext() {
+
+	SetConfigVals()
 	app.maxLen = viper.GetInt("MAX_LENGTH")
 	app.intDigits = viper.GetInt("MAX_INT_DIGITS")
 	app.tagDemlim = viper.GetString("TAG_DELIMITER")
 	app.instance = InstanceType(viper.GetInt("INSTANCE_TYPE"))
 
-	testing := viper.GetBool("DEVELOPMENT")
-	if testing {
-		app.conn = viper.GetString("TESTING_CONN")
-	} else {
-		app.conn = viper.GetString("CONNECTION_STRING")
-	}
-
 	app.DateLayout = viper.GetString("DATETIME_FORMAT")
 	app.todoRepo = getRepo(getDbKind(viper.GetString("DB_TYPE")), app.conn, app.DateLayout)
 }
 
-func RunApp(osArgs []string, w io.Writer) int {
+func SetSrvContext() {
+	SetConfigVals()
+	cn := getConn()
+	dl := viper.GetString("DATETIME_FORMAT")
+	getRepo(getDbKind(viper.GetString("DB_TYPE")), cn, dl)
+}
+
+func getConn() string {
+	testing := viper.GetBool("DEVELOPMENT")
+	if testing {
+		return viper.GetString("TESTING_CONN")
+	} else {
+		return viper.GetString("CONNECTION_STRING")
+	}
+}
+
+func RunCli(osArgs []string, w io.Writer) int {
 
 	app, err := setup(osArgs)
 	if err != nil {
