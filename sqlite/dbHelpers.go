@@ -21,6 +21,7 @@ const (
 	all
 )
 
+// Repo used by the app
 var AppRepo Repo
 
 // Basic type to encapsulate the various IRepository methods
