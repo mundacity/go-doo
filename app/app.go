@@ -13,9 +13,9 @@ import (
 type InstanceType int
 
 const (
-	local InstanceType = iota
-	remote
-	multiple // allows for simultaneous use of multiple storage options - all local, all remote, or a mix.
+	Local InstanceType = iota
+	Remote
+	Multiple // allows for simultaneous use of multiple storage options - all local, all remote, or a mix.
 	// good excuse for experimenting with concurrency - go routines & channels
 )
 
@@ -64,6 +64,9 @@ func (app *AppContext) setCliContext() {
 	app.IntDigits = viper.GetInt("MAX_INT_DIGITS")
 	app.TagDemlim = viper.GetString("TAG_DELIMITER")
 	app.Instance = InstanceType(viper.GetInt("INSTANCE_TYPE"))
+	if app.Instance != 0 {
+		app.Client = *http.DefaultClient
+	}
 	app.conn = getConn()
 
 	app.DateLayout = viper.GetString("DATETIME_FORMAT")

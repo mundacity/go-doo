@@ -1,6 +1,12 @@
 package srv
 
-import "net/http"
+import (
+	"encoding/json"
+	"net/http"
+
+	godoo "github.com/mundacity/go-doo"
+	"github.com/mundacity/go-doo/sqlite"
+)
 
 func TestHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
@@ -8,25 +14,68 @@ func TestHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("content-type", "application/json")
 
+	var td godoo.TodoItem
+	d := json.NewDecoder(r.Body)
+	err := d.Decode(&td)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	i, err := sqlite.AppRepo.Add(&td)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(i)
 }
 
 func GetHandler(w http.ResponseWriter, r *http.Request) {
-	// need to figure out the form the query will come in...
-	// e.g. GetWhere() takes a []godoo.UserQuery and a godoo.TodoItem
-	//http://192.168.0.1?name1=value1&name2=value2 is apparantly the standard
 
-	/*
-	* think I might need a different implementation of IRepository which
-	* can convert a []godoo.UserQuery and a godoo.TodoItem into
-	* a proper http query string? ... or maybe you can put an array into
-	* an http query string, in which case I could just have a list of string
-	* values and match that to []godoo.UserQuery, and then various keyVal pairs
-	* for todo item attributes to search by... too tired to figure it out now...
-	 */
+	w.Header().Set("content-type", "application/json")
 
+	var fq godoo.FullUserQuery
+	d := json.NewDecoder(r.Body)
+	err := d.Decode(&fq)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	itms, err := sqlite.AppRepo.GetWhere(fq)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(itms)
 }
 
 func EditHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("content-type", "application/json")
 
+	var fq []godoo.FullUserQuery
+	d := json.NewDecoder(r.Body)
+	err := d.Decode(&fq)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	i, err := sqlite.AppRepo.UpdateWhere(fq[0], fq[1])
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(i)
 }

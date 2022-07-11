@@ -1,9 +1,12 @@
 package cli
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -159,10 +162,46 @@ func (gCmd *GetCommand) Run(w io.Writer) error {
 
 	fullQry := godoo.FullUserQuery{QueryOptions: qList, QueryData: input}
 
+	if gCmd.appCtx.Instance == app.Remote {
+		return gCmd.remoteGet(w, fullQry)
+	}
+
 	itms, err = gCmd.appCtx.TodoRepo.GetWhere(fullQry)
 	if err != nil {
 		return err
 	}
+
+	msg := gCmd.getFunc(itms)
+	w.Write([]byte(msg()))
+
+	return nil
+}
+
+func (gCmd *GetCommand) remoteGet(w io.Writer, fq godoo.FullUserQuery) error {
+
+	// --> very happy path; need to test
+	baseUrl := "http://localhost:8080/get"
+
+	body, err := json.Marshal(fq)
+	if err != nil {
+		return err
+	}
+
+	rq, err := http.NewRequest("GET", baseUrl, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+	rq.Header.Set("content-type", "application/json")
+
+	resp, err := gCmd.appCtx.Client.Do(rq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var itms []godoo.TodoItem
+	d := json.NewDecoder(resp.Body)
+	d.Decode(&itms)
 
 	msg := gCmd.getFunc(itms)
 	w.Write([]byte(msg()))

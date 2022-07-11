@@ -1,9 +1,12 @@
 package cli
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 	"time"
 
@@ -103,18 +106,56 @@ func (aCmd *AddCommand) ParseFlags() error {
 
 // Run implements method from ICommand interface
 func (aCmd *AddCommand) Run(w io.Writer) error {
+
 	td, _ := aCmd.GenerateTodoItem()
+
+	if aCmd.appCtx.Instance == app.Remote {
+		return aCmd.remoteAdd(w, td)
+	}
 
 	id, err := aCmd.appCtx.TodoRepo.Add(&td)
 	if err != nil {
 		return err
 	}
 
+	printMsg(int(id), w)
+
+	return nil
+}
+
+func printMsg(id int, w io.Writer) {
 	msg := fmt.Sprintf("Creation successful, ItemId: %v\n", id)
-	_, err = w.Write([]byte(msg))
+	w.Write([]byte(msg))
+}
+
+func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
+
+	// --> very happy path; need to test
+	baseUrl := "http://localhost:8080/add"
+
+	body, err := json.Marshal(td)
 	if err != nil {
 		return err
 	}
+
+	rq, err := http.NewRequest("POST", baseUrl, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+	rq.Header.Set("content-type", "application/json")
+
+	resp, err := aCmd.appCtx.Client.Do(rq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var i int64
+
+	d := json.NewDecoder(resp.Body)
+	d.Decode(&i)
+
+	printMsg(int(i), w)
 
 	return nil
 }

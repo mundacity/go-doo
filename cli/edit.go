@@ -2,10 +2,13 @@ package cli
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -214,17 +217,57 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 	srchFq := godoo.FullUserQuery{QueryOptions: srchQryLst, QueryData: toEdit}
 	edtFq := godoo.FullUserQuery{QueryOptions: edtQryLst, QueryData: newVals}
 
+	if eCmd.appCtx.Instance == app.Remote {
+		return eCmd.remoteEdit(w, srchFq, edtFq)
+	}
+
 	num, err := eCmd.appCtx.TodoRepo.UpdateWhere(srchFq, edtFq)
 	if err != nil {
 		return err
 	}
 
+	getMsg(num, w)
+	return nil
+}
+
+func getMsg(num int, w io.Writer) {
 	s := ""
 	if num == 0 || num > 1 {
 		s = "s"
 	}
 	msg := fmt.Sprintf("--> Edited %v item%v\n", num, s)
 	w.Write([]byte(msg))
+}
+
+func (eCmd *EditCommand) remoteEdit(w io.Writer, srchFq, edtFq godoo.FullUserQuery) error {
+	// --> very happy path; need to test
+	baseUrl := "http://localhost:8080/edit"
+
+	s := []godoo.FullUserQuery{srchFq, edtFq}
+
+	body, err := json.Marshal(s)
+	if err != nil {
+		return err
+	}
+
+	rq, err := http.NewRequest("PUT", baseUrl, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+	rq.Header.Set("content-type", "application/json")
+
+	resp, err := eCmd.appCtx.Client.Do(rq)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var i int
+
+	d := json.NewDecoder(resp.Body)
+	d.Decode(&i)
+
+	getMsg(i, w)
 
 	return nil
 }
