@@ -5,19 +5,32 @@ import (
 	"net/http"
 
 	godoo "github.com/mundacity/go-doo"
-	"github.com/mundacity/go-doo/sqlite"
 )
 
-func TestHandler(w http.ResponseWriter, r *http.Request) {
+type Handler struct {
+	Repo godoo.IRepository
+}
+
+func (h Handler) TestHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("ok"))
 }
 
-func AddHandler(w http.ResponseWriter, r *http.Request) {
+func (h Handler) HandleRequests(w http.ResponseWriter, r *http.Request) {
 
-	if r.Method != http.MethodPost {
+	switch r.Method {
+	case http.MethodGet:
+		h.GetHandler(w, r)
+	case http.MethodPut:
+		h.EditHandler(w, r)
+	case http.MethodPost:
+		h.AddHandler(w, r)
+	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func (h Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "application/json")
 
@@ -30,7 +43,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	i, err := sqlite.AppRepo.Add(&td)
+	i, err := h.Repo.Add(&td)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -40,11 +53,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(i)
 }
 
-func GetHandler(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-	}
+func (h Handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "application/json")
 
@@ -57,7 +66,7 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	itms, err := sqlite.AppRepo.GetWhere(fq)
+	itms, err := h.Repo.GetWhere(fq)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -67,11 +76,7 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(itms)
 }
 
-func EditHandler(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != http.MethodPut {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-	}
+func (h Handler) EditHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "application/json")
 
@@ -89,7 +94,7 @@ func EditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	i, err := sqlite.AppRepo.UpdateWhere(fq[0], fq[1])
+	i, err := h.Repo.UpdateWhere(fq[0], fq[1])
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

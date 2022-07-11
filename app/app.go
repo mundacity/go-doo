@@ -78,11 +78,11 @@ func (app *AppContext) setCliContext() {
 	app.TodoRepo = getRepo(getDbKind(viper.GetString("DB_TYPE")), app.conn, app.DateLayout, 0)
 }
 
-func SetSrvContext() {
+func SetSrvContext() godoo.IRepository {
 	SetConfigVals()
 	cn := getConn()
 	dl := viper.GetString("DATETIME_FORMAT")
-	getRepo(getDbKind(viper.GetString("DB_TYPE")), cn, dl, viper.GetInt("SERVER_PORT"))
+	return getRepo(getDbKind(viper.GetString("DB_TYPE")), cn, dl, viper.GetInt("SERVER_PORT"))
 }
 
 func getConn() string {
