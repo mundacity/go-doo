@@ -131,7 +131,7 @@ func printMsg(id int, w io.Writer) {
 func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
 
 	// --> very happy path; need to test
-	baseUrl := "http://localhost:8080/add"
+	baseUrl := aCmd.appCtx.RemoteUrl + "/add"
 
 	body, err := json.Marshal(td)
 	if err != nil {

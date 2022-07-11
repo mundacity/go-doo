@@ -7,3 +7,5 @@ DB_TYPE = "sqlite"
 CONNECTION_STRING = "/path/to/db/folder/go-doo.db"
 TESTING_CONN = "/path/to/testing/db/folder/go-doo-testing.db"
 DEVELOPMENT = true
+SERVER_PORT = 8080
+BASE_URL = "http://localhost"

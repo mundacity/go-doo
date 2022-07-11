@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"net/http"
 
 	godoo "github.com/mundacity/go-doo"
@@ -26,6 +27,7 @@ type AppContext struct {
 	Client     http.Client
 	TodoRepo   godoo.IRepository // todo: make a slice to implement multiple dbs
 	Instance   InstanceType
+	RemoteUrl  string
 	DateLayout string
 	conn       string
 	MaxLen     int
@@ -50,6 +52,7 @@ func SetConfigVals() {
 	viper.SetDefault("INSTANCE_TYPE", 0)
 	viper.SetDefault("DB_TYPE", "sqlite")
 	viper.SetDefault("SERVER_PORT", 8080)
+	viper.SetDefault("BASE_URL", "http://localhost")
 
 	viper.SetConfigName("env")
 	viper.SetConfigType("env")
@@ -67,6 +70,7 @@ func (app *AppContext) setCliContext() {
 	app.Instance = InstanceType(viper.GetInt("INSTANCE_TYPE"))
 	if app.Instance != 0 {
 		app.Client = *http.DefaultClient
+		app.RemoteUrl = fmt.Sprintf("%v:%v", viper.GetString("BASE_URL"), viper.GetInt("SERVER_PORT"))
 	}
 	app.conn = getConn()
 

@@ -180,7 +180,7 @@ func (gCmd *GetCommand) Run(w io.Writer) error {
 func (gCmd *GetCommand) remoteGet(w io.Writer, fq godoo.FullUserQuery) error {
 
 	// --> very happy path; need to test
-	baseUrl := "http://localhost:8080/get"
+	baseUrl := gCmd.appCtx.RemoteUrl + "/get"
 
 	body, err := json.Marshal(fq)
 	if err != nil {

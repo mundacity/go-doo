@@ -241,7 +241,7 @@ func getMsg(num int, w io.Writer) {
 
 func (eCmd *EditCommand) remoteEdit(w io.Writer, srchFq, edtFq godoo.FullUserQuery) error {
 	// --> very happy path; need to test
-	baseUrl := "http://localhost:8080/edit"
+	baseUrl := eCmd.appCtx.RemoteUrl + "/edit"
 
 	s := []godoo.FullUserQuery{srchFq, edtFq}
 
