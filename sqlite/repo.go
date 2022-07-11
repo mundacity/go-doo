@@ -35,6 +35,9 @@ func (r *Repo) Add(itm *godoo.TodoItem) (int64, error) {
 		d = util.StringFromDate(itm.Deadline)
 	}
 
+	r.Mtx.Lock()
+	defer r.Mtx.Unlock()
+
 	tx, err := r.db.BeginTx(context.Background(), nil)
 	if err != nil {
 		return 0, err
@@ -75,6 +78,9 @@ func (r *Repo) UpdateWhere(srchQry, edtQry godoo.FullUserQuery) (int, error) {
 
 	itmSql, data := r.assembleUpdateData(itmSql, srchQry, edtQry)
 
+	r.Mtx.Lock()
+	defer r.Mtx.Unlock()
+
 	tx, err := r.db.BeginTx(context.Background(), nil)
 	if err != nil {
 		return 0, err
@@ -98,22 +104,25 @@ func (r *Repo) UpdateWhere(srchQry, edtQry godoo.FullUserQuery) (int, error) {
 	return int(rows), nil
 }
 
-func (sr *Repo) GetWhere(qry godoo.FullUserQuery) ([]godoo.TodoItem, error) {
+func (r *Repo) GetWhere(qry godoo.FullUserQuery) ([]godoo.TodoItem, error) {
 
 	if len(qry.QueryOptions) == 0 {
-		return sr.getAll()
+		return r.getAll()
 	}
 
 	mp := make(map[int]*godoo.TodoItem)
 	whereLst := getWhereList(qry)
-	sql, vals := buildAndWhere(whereLst, getSql(godoo.Get, sr.kind, all)+" where ")
+	sql, vals := buildAndWhere(whereLst, getSql(godoo.Get, r.kind, all)+" where ")
 
-	all, err := sr.db.Query(sql, vals...)
+	r.Mtx.Lock()
+	defer r.Mtx.Unlock()
+
+	all, err := r.db.Query(sql, vals...)
 	if err != nil {
 		return nil, err
 	}
 
-	ret, err := sr.processQuery(all, mp)
+	ret, err := r.processQuery(all, mp)
 	if err != nil {
 		return nil, err
 	}

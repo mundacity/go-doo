@@ -3,6 +3,7 @@ package sqlite
 import (
 	"database/sql"
 	"fmt"
+	"sync"
 	"time"
 
 	godoo "github.com/mundacity/go-doo"
@@ -30,6 +31,7 @@ type Repo struct {
 	dl   string
 	kind godoo.DbType
 	Port int
+	Mtx  sync.Mutex
 }
 
 // Helps when scanning using sql.Rows.Scan
