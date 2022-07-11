@@ -29,6 +29,7 @@ type Repo struct {
 	db   *sql.DB
 	dl   string
 	kind godoo.DbType
+	Port int
 }
 
 // Helps when scanning using sql.Rows.Scan

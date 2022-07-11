@@ -14,6 +14,11 @@ func TestHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddHandler(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+
 	w.Header().Set("content-type", "application/json")
 
 	var td godoo.TodoItem
@@ -27,7 +32,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 
 	i, err := sqlite.AppRepo.Add(&td)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -36,6 +41,10 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetHandler(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
 
 	w.Header().Set("content-type", "application/json")
 
@@ -50,7 +59,7 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	itms, err := sqlite.AppRepo.GetWhere(fq)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -59,6 +68,11 @@ func GetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func EditHandler(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPut {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+
 	w.Header().Set("content-type", "application/json")
 
 	var fq []godoo.FullUserQuery
@@ -70,9 +84,14 @@ func EditHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(fq) != 2 {
+		http.Error(w, "two FullUserQuery structs required", http.StatusForbidden)
+		return
+	}
+
 	i, err := sqlite.AppRepo.UpdateWhere(fq[0], fq[1])
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

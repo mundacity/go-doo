@@ -49,6 +49,7 @@ func SetConfigVals() {
 	viper.SetDefault("DATETIME_FORMAT", "2006-01-02")
 	viper.SetDefault("INSTANCE_TYPE", 0)
 	viper.SetDefault("DB_TYPE", "sqlite")
+	viper.SetDefault("SERVER_PORT", 8080)
 
 	viper.SetConfigName("env")
 	viper.SetConfigType("env")
@@ -70,14 +71,14 @@ func (app *AppContext) setCliContext() {
 	app.conn = getConn()
 
 	app.DateLayout = viper.GetString("DATETIME_FORMAT")
-	app.TodoRepo = getRepo(getDbKind(viper.GetString("DB_TYPE")), app.conn, app.DateLayout)
+	app.TodoRepo = getRepo(getDbKind(viper.GetString("DB_TYPE")), app.conn, app.DateLayout, 0)
 }
 
 func SetSrvContext() {
 	SetConfigVals()
 	cn := getConn()
 	dl := viper.GetString("DATETIME_FORMAT")
-	getRepo(getDbKind(viper.GetString("DB_TYPE")), cn, dl)
+	getRepo(getDbKind(viper.GetString("DB_TYPE")), cn, dl, viper.GetInt("SERVER_PORT"))
 }
 
 func getConn() string {
@@ -98,10 +99,10 @@ func getDbKind(k string) godoo.DbType {
 	}
 }
 
-func getRepo(dbKind godoo.DbType, connStr, dateLayout string) godoo.IRepository {
+func getRepo(dbKind godoo.DbType, connStr, dateLayout string, port int) godoo.IRepository {
 	switch dbKind {
 	case godoo.Sqlite:
-		return sqlite.SetupRepo(connStr, dbKind, dateLayout)
+		return sqlite.SetupRepo(connStr, dbKind, dateLayout, port)
 	}
 	return nil
 }

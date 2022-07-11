@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/mundacity/go-doo/app"
+	"github.com/mundacity/go-doo/sqlite"
 	"github.com/mundacity/go-doo/srv"
 )
 
@@ -18,8 +20,9 @@ func main() {
 	mux.HandleFunc("/get", srv.GetHandler)
 	mux.HandleFunc("/edit", srv.EditHandler)
 
+	add := fmt.Sprintf(":%v", sqlite.AppRepo.Port)
 	server := http.Server{
-		Addr:    ":8080",
+		Addr:    add,
 		Handler: mux,
 	}
 

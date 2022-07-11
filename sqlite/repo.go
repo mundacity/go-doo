@@ -11,9 +11,9 @@ import (
 	"github.com/mundacity/go-doo/util"
 )
 
-func SetupRepo(conn string, dbKind godoo.DbType, dateLayout string) *Repo {
+func SetupRepo(conn string, dbKind godoo.DbType, dateLayout string, port int) *Repo {
 	Db := setup(conn)
-	AppRepo = Repo{db: Db, dl: dateLayout, kind: dbKind}
+	AppRepo = Repo{db: Db, dl: dateLayout, kind: dbKind, Port: port}
 	return &AppRepo
 }
 

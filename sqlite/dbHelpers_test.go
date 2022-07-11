@@ -107,7 +107,7 @@ func convertToUpperBound(dStr string) time.Time {
 }
 
 func getInMemDb() *Repo {
-	return SetupRepo("", godoo.Sqlite, "2006-01-02")
+	return SetupRepo("", godoo.Sqlite, "2006-01-02", 0)
 }
 
 func TestUpdateAssembling(t *testing.T) {
