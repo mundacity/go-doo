@@ -11,14 +11,15 @@ import (
 )
 
 func main() {
-	app.SetSrvContext()
+	r := app.SetSrvContext()
 	// method/s to set up the full todoList to allow for priority queue etc
+	h := srv.Handler{Repo: r}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/test", srv.TestHandler)
-	mux.HandleFunc("/add", srv.AddHandler)
-	mux.HandleFunc("/get", srv.GetHandler)
-	mux.HandleFunc("/edit", srv.EditHandler)
+	mux.HandleFunc("/test", h.TestHandler)
+	mux.HandleFunc("/add", h.HandleRequests)
+	mux.HandleFunc("/get", h.HandleRequests)
+	mux.HandleFunc("/edit", h.HandleRequests)
 
 	add := fmt.Sprintf(":%v", sqlite.AppRepo.Port)
 	server := http.Server{
