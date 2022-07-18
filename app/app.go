@@ -68,13 +68,15 @@ func (app *AppContext) setCliContext() {
 	app.IntDigits = viper.GetInt("MAX_INT_DIGITS")
 	app.TagDemlim = viper.GetString("TAG_DELIMITER")
 	app.Instance = InstanceType(viper.GetInt("INSTANCE_TYPE"))
+	app.DateLayout = viper.GetString("DATETIME_FORMAT")
+
 	if app.Instance != 0 {
 		app.Client = *http.DefaultClient
 		app.RemoteUrl = fmt.Sprintf("%v:%v", viper.GetString("BASE_URL"), viper.GetInt("SERVER_PORT"))
+		return
 	}
-	app.conn = getConn()
 
-	app.DateLayout = viper.GetString("DATETIME_FORMAT")
+	app.conn = getConn()
 	app.TodoRepo = getRepo(getDbKind(viper.GetString("DB_TYPE")), app.conn, app.DateLayout, 0)
 }
 
