@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	godoo "github.com/mundacity/go-doo"
+	lg "github.com/mundacity/go-doo/logging"
 	"github.com/mundacity/go-doo/sqlite"
 	"github.com/spf13/viper"
 )
@@ -38,9 +39,19 @@ type AppContext struct {
 // init sets up the appContext to be used in
 // properly executing user commands
 func SetupCli(osArgs []string) (*AppContext, error) {
+
 	app := AppContext{Args: osArgs}
 	app.setCliContext()
+
 	return &app, nil
+}
+
+func startLogger(msg string) {
+	logPath := viper.GetString("LOG_FILE_PATH")
+	lg.Logger = lg.New(logPath, 2)
+	lg.Logger.Log(lg.Info, msg)
+
+	//lg.Logger.LogWithCallerInfo(lg.Info, msg, runtime.Caller)
 }
 
 // Set default configuration values and read from env file
@@ -53,6 +64,7 @@ func SetConfigVals() {
 	viper.SetDefault("DB_TYPE", "sqlite")
 	viper.SetDefault("SERVER_PORT", 8080)
 	viper.SetDefault("BASE_URL", "http://localhost")
+	viper.SetDefault("LOG_FILE_PATH", "godoo-logs")
 
 	viper.SetConfigName("env")
 	viper.SetConfigType("env")
@@ -70,20 +82,37 @@ func (app *AppContext) setCliContext() {
 	app.Instance = InstanceType(viper.GetInt("INSTANCE_TYPE"))
 	app.DateLayout = viper.GetString("DATETIME_FORMAT")
 
+	startLogger("cli application started...")
+	tolog := []any{app.MaxLen, app.IntDigits, app.TagDemlim, app.Instance, app.DateLayout}
+	s := "[MaxLen: %v, IntDigits: %v, TagDelim: %v, InstanceType: %v, DateLayout: %v]"
+
 	if app.Instance != 0 {
 		app.Client = *http.DefaultClient
 		app.RemoteUrl = fmt.Sprintf("%v:%v", viper.GetString("BASE_URL"), viper.GetInt("SERVER_PORT"))
+
+		tolog = append(tolog, app.RemoteUrl)
+		s = s[:len(s)-1] + ", RemoteUrl: %v]"
+		lg.Logger.Logf(lg.Info, s, tolog...)
 		return
 	}
 
 	app.conn = getConn()
 	app.TodoRepo = getRepo(getDbKind(viper.GetString("DB_TYPE")), app.conn, app.DateLayout, 0)
+
+	tolog = append(tolog, app.conn)
+	s += app.conn
+	lg.Logger.Logf(lg.Info, s, tolog...)
 }
 
 func SetSrvContext() godoo.IRepository {
+
 	SetConfigVals()
 	cn := getConn()
 	dl := viper.GetString("DATETIME_FORMAT")
+
+	startLogger("srv application started")
+	lg.Logger.Logf(lg.Info, "Conn: %v\n\tDateLayout: %v\n", cn, dl)
+
 	return getRepo(getDbKind(viper.GetString("DB_TYPE")), cn, dl, viper.GetInt("SERVER_PORT"))
 }
 
@@ -97,6 +126,8 @@ func getConn() string {
 }
 
 func getDbKind(k string) godoo.DbType {
+	lg.Logger.Logf(lg.Info, "type of db = %v", k)
+
 	switch k {
 	case "sqlite":
 		return godoo.Sqlite
@@ -106,6 +137,7 @@ func getDbKind(k string) godoo.DbType {
 }
 
 func getRepo(dbKind godoo.DbType, connStr, dateLayout string, port int) godoo.IRepository {
+	lg.Logger.Logf(lg.Info, "Port: %v", port)
 	switch dbKind {
 	case godoo.Sqlite:
 		return sqlite.SetupRepo(connStr, dbKind, dateLayout, port)

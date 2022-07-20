@@ -9,3 +9,4 @@ TESTING_CONN = "/path/to/testing/db/folder/go-doo-testing.db"
 DEVELOPMENT = true
 SERVER_PORT = 8080
 BASE_URL = "http://localhost"
+LOG_FILE_PATH = "godoo-srv-logs"
