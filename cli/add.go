@@ -173,8 +173,8 @@ func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json decoding error: %v", err), runtime.Caller)
 	}
 
-	lg.Logger.Log(lg.Info, "remote item successfully added")
 	printMsg(int(i), w)
+	lg.Logger.Log(lg.Info, "remote item successfully added")
 
 	return nil
 }

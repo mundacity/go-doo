@@ -124,10 +124,12 @@ func (eCmd *EditCommand) ParseFlags() error {
 	newArgs, err := eCmd.parser.ParseUserInput()
 
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("user input parsing error: %v", err), runtime.Caller)
 		return err
 	}
 
 	eCmd.appCtx.Args = newArgs
+	lg.Logger.Log(lg.Info, "successfully parsed user input")
 	return eCmd.fs.Parse(eCmd.appCtx.Args)
 }
 
