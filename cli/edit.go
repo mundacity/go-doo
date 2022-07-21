@@ -10,12 +10,14 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
 	fp "github.com/mundacity/flag-parser"
 	godoo "github.com/mundacity/go-doo"
 	"github.com/mundacity/go-doo/app"
+	lg "github.com/mundacity/go-doo/logging"
 )
 
 type EditCommand struct {
@@ -43,6 +45,7 @@ type EditCommand struct {
 
 func NewEditCommand(ctx *app.AppContext) (*EditCommand, error) {
 	eCmd := EditCommand{appCtx: ctx, fs: flag.NewFlagSet("edit", flag.ContinueOnError)}
+	lg.Logger.Log(lg.Info, "edit command created")
 
 	// selectors to determine which items to edit
 	eCmd.fs.IntVar(&eCmd.id, strings.Trim(string(itmId), "-"), 0, "edit item by id")
@@ -64,7 +67,12 @@ func NewEditCommand(ctx *app.AppContext) (*EditCommand, error) {
 	eCmd.fs.StringVar(&eCmd.newBody, strings.Trim(string(changeBody), "-"), "", "change item/s body")
 	eCmd.fs.IntVar(&eCmd.newParent, strings.Trim(string(changeParent), "-"), 0, "change item/s parent id")
 
-	err := eCmd.SetupFlagMapper(ctx.Args)
+	var err error
+	if err = eCmd.SetupFlagMapper(ctx.Args); err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("flag parser setup error: %v", err), runtime.Caller)
+	}
+
+	lg.Logger.Log(lg.Info, "flag parser successfully setup")
 	return &eCmd, err
 }
 
@@ -179,9 +187,13 @@ func (eCmd *EditCommand) getAdditionalInput() error {
 		if !eCmd.appending && !eCmd.replacing {
 			// get user input to figure what they want
 			fmt.Print("\nNo edit mode specified. Choose append (a), replace (r). Any other key to cancel...\n")
+
+			lg.Logger.Log(lg.Info, "user asked for additional input")
+
 			rdr := bufio.NewReader(os.Stdin)
 			choice, _, err := rdr.ReadRune()
 			if err != nil {
+				lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving additional user input: %v", err), runtime.Caller)
 				fmt.Printf("Error occurred: %v, cancelling operation.", err)
 			}
 
@@ -190,8 +202,10 @@ func (eCmd *EditCommand) getAdditionalInput() error {
 			} else if choice == 'a' {
 				eCmd.appending = true
 			} else {
+				lg.Logger.Logf(lg.Warning, "invalid additional user input: %v", choice)
 				return errors.New("cancelling operation")
 			}
+			lg.Logger.Logf(lg.Info, "user choice: %v", choice)
 		}
 	}
 	return nil
@@ -223,10 +237,12 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 
 	num, err := eCmd.appCtx.TodoRepo.UpdateWhere(srchFq, edtFq)
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("failed to edit item: %v", err), runtime.Caller)
 		return err
 	}
 
 	getMsg(num, w)
+	lg.Logger.Log(lg.Info, "local item successfully edited")
 	return nil
 }
 
@@ -247,17 +263,20 @@ func (eCmd *EditCommand) remoteEdit(w io.Writer, srchFq, edtFq godoo.FullUserQue
 
 	body, err := json.Marshal(s)
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json marshalling error: %v", err), runtime.Caller)
 		return err
 	}
 
 	rq, err := http.NewRequest("PUT", baseUrl, bytes.NewBuffer(body))
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("request generation error: %v", err), runtime.Caller)
 		return err
 	}
 	rq.Header.Set("content-type", "application/json")
 
 	resp, err := eCmd.appCtx.Client.Do(rq)
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err
 	}
 	defer resp.Body.Close()
@@ -265,9 +284,13 @@ func (eCmd *EditCommand) remoteEdit(w io.Writer, srchFq, edtFq godoo.FullUserQue
 	var i int
 
 	d := json.NewDecoder(resp.Body)
-	d.Decode(&i)
+
+	if err = d.Decode(&i); err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json decoding error: %v", err), runtime.Caller)
+	}
 
 	getMsg(i, w)
+	lg.Logger.Logf(lg.Info, "%v remote item/s successfully edited", i)
 
 	return nil
 }
@@ -305,6 +328,9 @@ func (eCmd *EditCommand) determineQueryType(qType godoo.QueryType) ([]godoo.User
 		if eCmd.complete {
 			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCompletion})
 		}
+
+		lg.Logger.QuickFmtLog(lg.Info, "query options (getting): ", ", ", ret)
+
 	case godoo.Update:
 		if eCmd.newParent != 0 {
 			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByParentId})
@@ -331,6 +357,8 @@ func (eCmd *EditCommand) determineQueryType(qType godoo.QueryType) ([]godoo.User
 		if eCmd.newlyComplete {
 			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCompletion})
 		}
+
+		lg.Logger.QuickFmtLog(lg.Info, "query options (editing): ", ", ", ret)
 	}
 
 	return ret, nil

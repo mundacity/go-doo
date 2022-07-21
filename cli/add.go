@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime"
 	"strings"
 	"time"
 
 	fp "github.com/mundacity/flag-parser"
 	godoo "github.com/mundacity/go-doo"
 	"github.com/mundacity/go-doo/app"
+	lg "github.com/mundacity/go-doo/logging"
 	"github.com/mundacity/go-doo/util"
 )
 
@@ -58,6 +60,7 @@ func (aCmd *AddCommand) GetValidFlags() ([]fp.FlagInfo, error) { // too tired to
 
 func NewAddCommand(ctx *app.AppContext) (*AddCommand, error) {
 	addCmd := AddCommand{appCtx: ctx, fs: flag.NewFlagSet("add", flag.ContinueOnError)}
+	lg.Logger.Log(lg.Info, "add command created")
 
 	addCmd.fs.StringVar((*string)(&addCmd.mode), strings.Trim(string(mode), "-"), string(none), "mode of operation: deadline, priority, none (default)")
 	addCmd.fs.StringVar(&addCmd.body, strings.Trim(string(body), "-"), "", "main content of the todo item")
@@ -67,7 +70,12 @@ func NewAddCommand(ctx *app.AppContext) (*AddCommand, error) {
 	addCmd.fs.StringVar(&addCmd.deadlineDate, strings.Trim(string(deadline), "-"), "", "when item needs to be completed by")
 
 	err := addCmd.SetupFlagMapper(ctx.Args)
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("flag parser setup error: %v", err), runtime.Caller)
+		return &addCmd, err
+	}
 
+	lg.Logger.Log(lg.Info, "flag parser successfully setup")
 	return &addCmd, err
 }
 
@@ -97,10 +105,12 @@ func (aCmd *AddCommand) ParseFlags() error {
 	newArgs, err := aCmd.parser.ParseUserInput()
 
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("user input parsing error: %v", err), runtime.Caller)
 		return err
 	}
 
 	aCmd.appCtx.Args = newArgs
+	lg.Logger.Log(lg.Info, "successfully parsed user input")
 	return aCmd.fs.Parse(aCmd.appCtx.Args)
 }
 
@@ -115,10 +125,12 @@ func (aCmd *AddCommand) Run(w io.Writer) error {
 
 	id, err := aCmd.appCtx.TodoRepo.Add(&td)
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("failed to add item: %v", err), runtime.Caller)
 		return err
 	}
 
 	printMsg(int(id), w)
+	lg.Logger.Log(lg.Info, "local item successfully added")
 
 	return nil
 }
@@ -135,17 +147,20 @@ func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
 
 	body, err := json.Marshal(td)
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json marshalling error: %v", err), runtime.Caller)
 		return err
 	}
 
 	rq, err := http.NewRequest("POST", baseUrl, bytes.NewBuffer(body))
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("request generation error: %v", err), runtime.Caller)
 		return err
 	}
 	rq.Header.Set("content-type", "application/json")
 
 	resp, err := aCmd.appCtx.Client.Do(rq)
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err
 	}
 	defer resp.Body.Close()
@@ -153,8 +168,12 @@ func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
 	var i int64
 
 	d := json.NewDecoder(resp.Body)
-	d.Decode(&i)
 
+	if err = d.Decode(&i); err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json decoding error: %v", err), runtime.Caller)
+	}
+
+	lg.Logger.Log(lg.Info, "remote item successfully added")
 	printMsg(int(i), w)
 
 	return nil

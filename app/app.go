@@ -50,8 +50,6 @@ func startLogger(msg string) {
 	logPath := viper.GetString("LOG_FILE_PATH")
 	lg.Logger = lg.New(logPath, 2)
 	lg.Logger.Log(lg.Info, msg)
-
-	//lg.Logger.LogWithCallerInfo(lg.Info, msg, runtime.Caller)
 }
 
 // Set default configuration values and read from env file
@@ -142,5 +140,7 @@ func getRepo(dbKind godoo.DbType, connStr, dateLayout string, port int) godoo.IR
 	case godoo.Sqlite:
 		return sqlite.SetupRepo(connStr, dbKind, dateLayout, port)
 	}
+
+	lg.Logger.Log(lg.Warning, "repo wasn't set up properly")
 	return nil
 }
