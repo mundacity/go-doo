@@ -26,9 +26,10 @@ type ILogger interface {
 	// This assumes that you don't always need/want the full file path - e.g. only if there's an error.
 	// In the standard implementation, the location is prepended to the initialText
 	// arg and Log(lv, initialText) is then called
-	LogWithCallerInfo(lv LogLevel, msg string, f func(int) (pc uintptr, file string, line int, ok bool))
+	LogWithCallerInfo(lv LogLevel, initialText string, f func(int) (pc uintptr, file string, line int, ok bool))
 }
 
+// Basic implementation of the ILogger interface
 type AppLogger struct {
 	Logger *log.Logger
 	depth  int

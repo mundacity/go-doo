@@ -47,6 +47,13 @@ func SetupCli(osArgs []string) (*AppContext, error) {
 }
 
 func startLogger(msg string) {
+	enable := viper.GetBool("ENABLE_LOGGING")
+
+	if !enable {
+		lg.Logger = lg.NewDummyLogger()
+		return
+	}
+
 	logPath := viper.GetString("LOG_FILE_PATH")
 	lg.Logger = lg.New(logPath, 2)
 	lg.Logger.Log(lg.Info, msg)
