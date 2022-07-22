@@ -17,7 +17,7 @@ import (
 	fp "github.com/mundacity/flag-parser"
 	godoo "github.com/mundacity/go-doo"
 	"github.com/mundacity/go-doo/app"
-	lg "github.com/mundacity/go-doo/logging"
+	lg "github.com/mundacity/quick-logger"
 )
 
 type EditCommand struct {

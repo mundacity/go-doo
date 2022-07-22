@@ -15,8 +15,8 @@ import (
 	godoo "github.com/mundacity/go-doo"
 
 	"github.com/mundacity/go-doo/app"
-	lg "github.com/mundacity/go-doo/logging"
 	"github.com/mundacity/go-doo/util"
+	lg "github.com/mundacity/quick-logger"
 )
 
 type GetCommand struct {

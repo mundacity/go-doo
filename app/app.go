@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	godoo "github.com/mundacity/go-doo"
-	lg "github.com/mundacity/go-doo/logging"
 	"github.com/mundacity/go-doo/sqlite"
+	lg "github.com/mundacity/quick-logger"
 	"github.com/spf13/viper"
 )
 
