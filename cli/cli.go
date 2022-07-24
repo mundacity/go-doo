@@ -33,16 +33,19 @@ const (
 	next            CMD_FLAG = "-n"
 	parent          CMD_FLAG = "-p"
 	tag             CMD_FLAG = "-t"
-	changeBody      CMD_FLAG = "-B" // append or replace
+	changeBody      CMD_FLAG = "-B" //append or replace
 	changeParent    CMD_FLAG = "-C"
 	changedDeadline CMD_FLAG = "-D"
 	markComplete    CMD_FLAG = "-F"
 	changeMode      CMD_FLAG = "-M"
-	changeTag       CMD_FLAG = "-T" // append, replace, or remove
+	changeTag       CMD_FLAG = "-T" //append, replace, or remove
 	appendMode      CMD_FLAG = "--append"
 	replaceMode     CMD_FLAG = "--replace"
 )
 
+// RunCli is the main entry point of the cli client application.
+// It passes initial setup off to the 'app' package and then
+// passes execution off to the relevant command
 func RunCli(osArgs []string, w io.Writer) int {
 
 	app, err := app.SetupCli(osArgs)

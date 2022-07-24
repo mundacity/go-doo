@@ -7,8 +7,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Sets up and returns the cli appContext to
-// be used in properly executing user commands
+// Sets up and returns the operating context of the cli client application
+// based on user configuration options. Also starts the logger.
 func SetupCli(osArgs []string) (*AppContext, error) {
 
 	app := AppContext{Args: osArgs}
@@ -17,7 +17,7 @@ func SetupCli(osArgs []string) (*AppContext, error) {
 	return &app, nil
 }
 
-// Sets up server
+// Sets up server context & logger in a similar way to SetupCli()
 func SetSrvContext() godoo.IRepository {
 
 	SetConfigVals()
@@ -49,7 +49,7 @@ func SetConfigVals() {
 	viper.ReadInConfig()
 }
 
-// Returns db path
+// Returns db path based on user configuration options
 func getConn() string {
 	testing := viper.GetBool("DEVELOPMENT")
 	if testing {
@@ -59,7 +59,7 @@ func getConn() string {
 	}
 }
 
-// Start quick logger
+// Starts a quick logger that can be used throughout the system
 func startLogger(msg string) {
 	enable := viper.GetBool("ENABLE_LOGGING")
 
