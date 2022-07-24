@@ -88,8 +88,8 @@ func _runAddTest(t *testing.T, tc add_test_case) {
 	nowStr := returnNowString()
 	addCmd.parser.NowMoment, _ = time.Parse(addCmd.appCtx.DateLayout, nowStr)
 
-	addCmd.ParseFlags()
-	td, _ := addCmd.GenerateTodoItem()
+	addCmd.ParseInput()
+	td, _ := addCmd.setUpItemFromUserInput()
 
 	same, msg := compareTestResults(tc.expected, td)
 

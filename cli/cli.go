@@ -13,7 +13,7 @@ type IFlagInfoWrapper interface {
 
 // Sets out the methods implemented by commands that the user can execute
 type ICommand interface {
-	ParseFlags() error
+	ParseInput() error
 	Run(io.Writer) error
 }
 
@@ -59,7 +59,7 @@ func RunCli(osArgs []string, w io.Writer) int {
 		return 2
 	}
 
-	err = cmd.ParseFlags()
+	err = cmd.ParseInput()
 	if err != nil {
 		fmt.Printf("error: '%v'", err)
 		return 2

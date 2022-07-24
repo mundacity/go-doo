@@ -43,18 +43,14 @@ type AddCommand struct {
 	deadlineDate string
 }
 
+// Returns a new AddCommand, but also sets up the flagset and parser
 func NewAddCommand(ctx *app.AppContext) (*AddCommand, error) {
-	addCmd := AddCommand{appCtx: ctx, fs: flag.NewFlagSet("add", flag.ContinueOnError)}
+	addCmd := AddCommand{appCtx: ctx}
 	lg.Logger.Log(lg.Info, "add command created")
 
-	addCmd.fs.StringVar((*string)(&addCmd.mode), strings.Trim(string(mode), "-"), string(none), "mode of operation: deadline, priority, none (default)")
-	addCmd.fs.StringVar(&addCmd.body, strings.Trim(string(body), "-"), "", "main content of the todo item")
-	addCmd.fs.StringVar(&addCmd.tagInput, strings.Trim(string(tag), "-"), "", "tag(s) added with/to the new item")
-	addCmd.fs.IntVar(&addCmd.childOf, strings.Trim(string(child), "-"), 0, "make item a child of another item")
-	addCmd.fs.IntVar(&addCmd.parentOf, strings.Trim(string(parent), "-"), 0, "make item a parent of another item")
-	addCmd.fs.StringVar(&addCmd.deadlineDate, strings.Trim(string(deadline), "-"), "", "when item needs to be completed by")
+	addCmd.setupFlagSet()
 
-	err := addCmd.SetupFlagMapper(ctx.Args)
+	err := addCmd.setupFlagMapper(ctx.Args)
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("flag parser setup error: %v", err), runtime.Caller)
 		return &addCmd, err
@@ -64,13 +60,27 @@ func NewAddCommand(ctx *app.AppContext) (*AddCommand, error) {
 	return &addCmd, err
 }
 
-func (aCmd *AddCommand) SetupFlagMapper(userFlags []string) error {
-	canonicalFlags, err := aCmd.GetValidFlags()
+// Describes the flags and argument types associated with the command
+func (aCmd *AddCommand) setupFlagSet() {
+
+	aCmd.fs = flag.NewFlagSet("add", flag.ContinueOnError)
+
+	aCmd.fs.StringVar((*string)(&aCmd.mode), strings.Trim(string(mode), "-"), string(none), "mode of operation: deadline, priority, none (default)")
+	aCmd.fs.StringVar(&aCmd.body, strings.Trim(string(body), "-"), "", "main content of the todo item")
+	aCmd.fs.StringVar(&aCmd.tagInput, strings.Trim(string(tag), "-"), "", "tag(s) added with/to the new item")
+	aCmd.fs.IntVar(&aCmd.childOf, strings.Trim(string(child), "-"), 0, "make item a child of another item")
+	aCmd.fs.IntVar(&aCmd.parentOf, strings.Trim(string(parent), "-"), 0, "make item a parent of another item")
+	aCmd.fs.StringVar(&aCmd.deadlineDate, strings.Trim(string(deadline), "-"), "", "when item needs to be completed by")
+}
+
+// Pass canonical flags and user input to flag-parser package
+func (aCmd *AddCommand) setupFlagMapper(userFlags []string) error {
+	canonicalFlags, err := aCmd.getValidFlags()
 	if err != nil {
 		return err
 	}
 
-	aCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(_getNowString(), aCmd.appCtx.DateLayout))
+	aCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(getNowString(), aCmd.appCtx.DateLayout))
 
 	err = aCmd.parser.CheckInitialisation()
 	if err != nil {
@@ -80,7 +90,8 @@ func (aCmd *AddCommand) SetupFlagMapper(userFlags []string) error {
 	return nil
 }
 
-func (aCmd *AddCommand) GetValidFlags() ([]fp.FlagInfo, error) {
+// Describes valid flag info for flag-parser
+func (aCmd *AddCommand) getValidFlags() ([]fp.FlagInfo, error) {
 	var ret []fp.FlagInfo
 
 	lenMax := aCmd.appCtx.MaxLen
@@ -97,7 +108,7 @@ func (aCmd *AddCommand) GetValidFlags() ([]fp.FlagInfo, error) {
 	return ret, nil
 }
 
-func _getNowString() string {
+func getNowString() string {
 	n := time.Now()
 	return util.StringFromDate(n)
 }
@@ -119,7 +130,7 @@ func (aCmd *AddCommand) ParseInput() error {
 // Run implements method from ICommand interface
 func (aCmd *AddCommand) Run(w io.Writer) error {
 
-	td, _ := aCmd.GenerateTodoItem()
+	td, _ := aCmd.setUpItemFromUserInput()
 
 	if aCmd.appCtx.Instance == app.Remote {
 		return aCmd.remoteAdd(w, td)
@@ -135,11 +146,6 @@ func (aCmd *AddCommand) Run(w io.Writer) error {
 	lg.Logger.Log(lg.Info, "local item successfully added")
 
 	return nil
-}
-
-func printMsg(id int, w io.Writer) {
-	msg := fmt.Sprintf("Creation successful, ItemId: %v\n", id)
-	w.Write([]byte(msg))
 }
 
 func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
@@ -181,7 +187,13 @@ func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
 	return nil
 }
 
-func (aCmd *AddCommand) GenerateTodoItem() (godoo.TodoItem, error) {
+func printMsg(id int, w io.Writer) {
+	msg := fmt.Sprintf("Creation successful, ItemId: %v\n", id)
+	w.Write([]byte(msg))
+}
+
+// Populates a godoo.TodoItem with user-supplied data for transer to database
+func (aCmd *AddCommand) setUpItemFromUserInput() (godoo.TodoItem, error) {
 	var td godoo.TodoItem
 
 	if len(aCmd.deadlineDate) > 0 {

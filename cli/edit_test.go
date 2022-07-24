@@ -163,7 +163,7 @@ func _runEditTest(t *testing.T, tc edit_item_generation_test_case) {
 	eCmd, _ := NewEditCommand(app)
 	nowStr := returnNowString()
 	eCmd.parser.NowMoment, _ = time.Parse(eCmd.appCtx.DateLayout, nowStr)
-	eCmd.ParseFlags()
+	eCmd.ParseInput()
 
 	same1, msg1 := compare(tc.expected, *eCmd)
 

@@ -82,7 +82,7 @@ func (eCmd *EditCommand) SetupFlagMapper(userFlags []string) error {
 		return err
 	}
 
-	eCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(_getNowString(), eCmd.appCtx.DateLayout))
+	eCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(getNowString(), eCmd.appCtx.DateLayout))
 
 	err = eCmd.parser.CheckInitialisation()
 	if err != nil {
