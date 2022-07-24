@@ -120,7 +120,7 @@ func (eCmd *EditCommand) GetValidFlags() ([]fp.FlagInfo, error) {
 }
 
 // ParseFlags implements method from ICommand interface
-func (eCmd *EditCommand) ParseFlags() error {
+func (eCmd *EditCommand) ParseInput() error {
 	newArgs, err := eCmd.parser.ParseUserInput()
 
 	if err != nil {

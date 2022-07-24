@@ -5,17 +5,16 @@ import (
 	"fmt"
 	"io"
 
-	fp "github.com/mundacity/flag-parser"
-	godoo "github.com/mundacity/go-doo"
 	"github.com/mundacity/go-doo/app"
 )
 
+type IFlagInfoWrapper interface {
+}
+
+// Sets out the methods implemented by commands that the user can execute
 type ICommand interface {
 	ParseFlags() error
 	Run(io.Writer) error
-	GetValidFlags() ([]fp.FlagInfo, error)
-	SetupFlagMapper(userInput []string) error
-	GenerateTodoItem() (godoo.TodoItem, error)
 }
 
 // Flags used throughout the system

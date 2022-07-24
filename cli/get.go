@@ -109,7 +109,7 @@ func (getCmd *GetCommand) GetValidFlags() ([]fp.FlagInfo, error) {
 }
 
 // ParseFlags implements method from ICommand interface
-func (getCmd *GetCommand) ParseFlags() error {
+func (getCmd *GetCommand) ParseInput() error {
 	newArgs, err := getCmd.parser.ParseUserInput()
 
 	if err != nil {

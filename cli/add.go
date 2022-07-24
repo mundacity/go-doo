@@ -18,19 +18,8 @@ import (
 	lg "github.com/mundacity/quick-logger"
 )
 
-// Lets user add new items
-type AddCommand struct {
-	appCtx       *app.AppContext
-	parser       fp.FlagParser
-	fs           *flag.FlagSet
-	mode         priorityMode
-	body         string // body of the item
-	tagInput     string // tags with delimeter set by environment variable
-	childOf      int    // child of the int argument
-	parentOf     int    // parent of the int argument
-	deadlineDate string
-}
-
+// Feature in progress... TODO
+// relates to priority queue and how remote storage returns the 'next' item
 type priorityMode string
 
 const (
@@ -41,21 +30,17 @@ const (
 	high     priorityMode = "h"
 )
 
-func (aCmd *AddCommand) GetValidFlags() ([]fp.FlagInfo, error) { // too tired to come up with anything more elegant - todo!
-	var ret []fp.FlagInfo
-
-	lenMax := aCmd.appCtx.MaxLen
-	maxIntDigits := aCmd.appCtx.IntDigits
-
-	f2 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
-	f3 := fp.FlagInfo{FlagName: string(mode), FlagType: fp.Str, MaxLen: 1}
-	f4 := fp.FlagInfo{FlagName: string(tag), FlagType: fp.Str, MaxLen: lenMax}
-	f5 := fp.FlagInfo{FlagName: string(child), FlagType: fp.Integer, MaxLen: maxIntDigits}
-	f6 := fp.FlagInfo{FlagName: string(parent), FlagType: fp.Integer, MaxLen: maxIntDigits}
-	f7 := fp.FlagInfo{FlagName: string(date), FlagType: fp.DateTime, MaxLen: 20}
-
-	ret = append(ret, f2, f3, f4, f5, f6, f7)
-	return ret, nil
+// AddCommand implements the ICommand interface and lets the user add new items to storage
+type AddCommand struct {
+	appCtx       *app.AppContext
+	parser       fp.FlagParser
+	fs           *flag.FlagSet
+	mode         priorityMode
+	body         string //body of the item
+	tagInput     string //tags with delimeter set by environment variable
+	childOf      int    //child of the int argument
+	parentOf     int    //parent of the int argument
+	deadlineDate string
 }
 
 func NewAddCommand(ctx *app.AppContext) (*AddCommand, error) {
@@ -95,13 +80,30 @@ func (aCmd *AddCommand) SetupFlagMapper(userFlags []string) error {
 	return nil
 }
 
+func (aCmd *AddCommand) GetValidFlags() ([]fp.FlagInfo, error) {
+	var ret []fp.FlagInfo
+
+	lenMax := aCmd.appCtx.MaxLen
+	maxIntDigits := aCmd.appCtx.IntDigits
+
+	f2 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
+	f3 := fp.FlagInfo{FlagName: string(mode), FlagType: fp.Str, MaxLen: 1}
+	f4 := fp.FlagInfo{FlagName: string(tag), FlagType: fp.Str, MaxLen: lenMax}
+	f5 := fp.FlagInfo{FlagName: string(child), FlagType: fp.Integer, MaxLen: maxIntDigits}
+	f6 := fp.FlagInfo{FlagName: string(parent), FlagType: fp.Integer, MaxLen: maxIntDigits}
+	f7 := fp.FlagInfo{FlagName: string(date), FlagType: fp.DateTime, MaxLen: 20}
+
+	ret = append(ret, f2, f3, f4, f5, f6, f7)
+	return ret, nil
+}
+
 func _getNowString() string {
 	n := time.Now()
 	return util.StringFromDate(n)
 }
 
-// ParseFlags implements method from ICommand interface
-func (aCmd *AddCommand) ParseFlags() error {
+// ParseInput implements method from ICommand interface
+func (aCmd *AddCommand) ParseInput() error {
 	newArgs, err := aCmd.parser.ParseUserInput()
 
 	if err != nil {
