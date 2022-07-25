@@ -114,19 +114,3 @@ func getNowString() string {
 	n := time.Now()
 	return util.StringFromDate(n)
 }
-
-// runs after successfully adding a new item
-func printAddMessage(id int, w io.Writer) {
-	msg := fmt.Sprintf("Creation successful, ItemId: %v\n", id)
-	w.Write([]byte(msg))
-}
-
-// runs after successfully editing n items
-func printEditMessage(n int, w io.Writer) {
-	s := ""
-	if n == 0 || n > 1 {
-		s = "s"
-	}
-	msg := fmt.Sprintf("--> Edited %v item%v\n", n, s)
-	w.Write([]byte(msg))
-}
