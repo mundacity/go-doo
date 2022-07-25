@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
+	"time"
 
 	"github.com/mundacity/go-doo/app"
+	"github.com/mundacity/go-doo/util"
 )
-
-type IFlagInfoWrapper interface {
-}
 
 // Sets out the methods implemented by commands that the user can execute
 type ICommand interface {
@@ -91,4 +91,42 @@ func getBasicCommand(ctx *app.AppContext) (ICommand, error) {
 		return nil, errors.New("invalid command")
 	}
 	return cmd, err
+}
+
+// if user is using a date range, get the upper bound of that range
+func getUpperDateBound(dateText string, dateLayout string) time.Time {
+	splt := splitDates(dateText)
+	var d time.Time
+
+	if len(splt) > 1 {
+		d, _ = time.Parse(dateLayout, splt[1])
+	}
+
+	return d
+}
+
+func splitDates(s string) []string {
+	return strings.Split(s, ":")
+}
+
+// Helper function used by commands when setting the 'now' time for flag-parser
+func getNowString() string {
+	n := time.Now()
+	return util.StringFromDate(n)
+}
+
+// runs after successfully adding a new item
+func printAddMessage(id int, w io.Writer) {
+	msg := fmt.Sprintf("Creation successful, ItemId: %v\n", id)
+	w.Write([]byte(msg))
+}
+
+// runs after successfully editing n items
+func printEditMessage(n int, w io.Writer) {
+	s := ""
+	if n == 0 || n > 1 {
+		s = "s"
+	}
+	msg := fmt.Sprintf("--> Edited %v item%v\n", n, s)
+	w.Write([]byte(msg))
 }

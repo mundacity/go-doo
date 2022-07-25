@@ -14,7 +14,6 @@ import (
 	fp "github.com/mundacity/flag-parser"
 	godoo "github.com/mundacity/go-doo"
 	"github.com/mundacity/go-doo/app"
-	"github.com/mundacity/go-doo/util"
 	lg "github.com/mundacity/quick-logger"
 )
 
@@ -108,11 +107,6 @@ func (aCmd *AddCommand) getValidFlags() ([]fp.FlagInfo, error) {
 	return ret, nil
 }
 
-func getNowString() string {
-	n := time.Now()
-	return util.StringFromDate(n)
-}
-
 // ParseInput implements method from ICommand interface
 func (aCmd *AddCommand) ParseInput() error {
 	newArgs, err := aCmd.parser.ParseUserInput()
@@ -142,10 +136,41 @@ func (aCmd *AddCommand) Run(w io.Writer) error {
 		return err
 	}
 
-	printMsg(int(id), w)
+	printAddMessage(int(id), w)
 	lg.Logger.Log(lg.Info, "local item successfully added")
 
 	return nil
+}
+
+// Populates a godoo.TodoItem with user-supplied data for transer to database
+func (aCmd *AddCommand) setUpItemFromUserInput() (godoo.TodoItem, error) {
+	var td godoo.TodoItem
+
+	if len(aCmd.deadlineDate) > 0 {
+		aCmd.mode = deadline
+	}
+
+	switch aCmd.mode {
+	case low:
+		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.Low))
+	case medium:
+		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.Medium))
+	case high:
+		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.High))
+	case deadline:
+		td = *godoo.NewTodoItem(godoo.WithDateBasedPriority(aCmd.deadlineDate, aCmd.appCtx.DateLayout))
+		d, _ := time.Parse(aCmd.appCtx.DateLayout, aCmd.deadlineDate)
+		td.Deadline = d
+	default:
+		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
+	}
+
+	td.Body = aCmd.body
+	td.CreationDate = time.Now()
+	td.ParentId = aCmd.childOf
+
+	parseTagInput(&td, aCmd.tagInput, aCmd.appCtx.TagDemlim)
+	return td, nil
 }
 
 func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
@@ -181,46 +206,10 @@ func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json decoding error: %v", err), runtime.Caller)
 	}
 
-	printMsg(int(i), w)
+	printAddMessage(int(i), w)
 	lg.Logger.Log(lg.Info, "remote item successfully added")
 
 	return nil
-}
-
-func printMsg(id int, w io.Writer) {
-	msg := fmt.Sprintf("Creation successful, ItemId: %v\n", id)
-	w.Write([]byte(msg))
-}
-
-// Populates a godoo.TodoItem with user-supplied data for transer to database
-func (aCmd *AddCommand) setUpItemFromUserInput() (godoo.TodoItem, error) {
-	var td godoo.TodoItem
-
-	if len(aCmd.deadlineDate) > 0 {
-		aCmd.mode = deadline
-	}
-
-	switch aCmd.mode {
-	case low:
-		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.Low))
-	case medium:
-		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.Medium))
-	case high:
-		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.High))
-	case deadline:
-		td = *godoo.NewTodoItem(godoo.WithDateBasedPriority(aCmd.deadlineDate, aCmd.appCtx.DateLayout))
-		d, _ := time.Parse(aCmd.appCtx.DateLayout, aCmd.deadlineDate)
-		td.Deadline = d
-	default:
-		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
-	}
-
-	td.Body = aCmd.body
-	td.CreationDate = time.Now()
-	td.ParentId = aCmd.childOf
-
-	parseTagInput(&td, aCmd.tagInput, aCmd.appCtx.TagDemlim)
-	return td, nil
 }
 
 // helper to parse delimited tag input;

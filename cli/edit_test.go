@@ -37,7 +37,7 @@ func _getTestCasesForEditing() []edit_item_generation_test_case {
 		name:     "find by id toggle completion",
 	}, {
 		args:     []string{"-i", "3", "-F"},
-		expected: EditCommand{id: 3, newlyComplete: true},
+		expected: EditCommand{id: 3, newToggleComplete: true},
 		err:      nil,
 		name:     "find by id toggle completion",
 	}, {
@@ -47,7 +47,7 @@ func _getTestCasesForEditing() []edit_item_generation_test_case {
 		name:     "find by id changed body no append/replace directive",
 	}, {
 		args:     []string{"-b", "edit", "command", "-F"},
-		expected: EditCommand{body: "edit command", newlyComplete: true},
+		expected: EditCommand{body: "edit command", newToggleComplete: true},
 		err:      nil,
 		name:     "find by body key phrase mark complete",
 	}, {
@@ -79,7 +79,7 @@ func getEditQueryBuildTestCases() []edit_query_build_test_case {
 		expSrchItm: godoo.TodoItem{Id: 4},
 		expEdtItm:  godoo.TodoItem{Body: "seems to be working"},
 	}, {
-		input:      EditCommand{body: "edit command", newlyComplete: true},
+		input:      EditCommand{body: "edit command", newToggleComplete: true},
 		name:       "body and complete",
 		expSrchLst: []godoo.UserQueryElement{godoo.ByBody},
 		expEdtLst:  []godoo.UserQueryElement{godoo.ByCompletion},
@@ -100,7 +100,7 @@ func getEditQueryBuildTestCases() []edit_query_build_test_case {
 		expSrchItm: godoo.TodoItem{Body: "multiple"},
 		expEdtItm:  godoo.TodoItem{Body: "cleaned out by edit command"},
 	}, {
-		input:      EditCommand{body: "multiple", tagInput: "dev", childOf: 4, appending: true, newBody: "cleaned out by edit command", newlyComplete: true},
+		input:      EditCommand{body: "multiple", tagInput: "dev", childOf: 4, appending: true, newBody: "cleaned out by edit command", newToggleComplete: true},
 		name:       "body, tag, child - new body appended marked complete",
 		expSrchLst: []godoo.UserQueryElement{godoo.ByBody, godoo.ByTag, godoo.ByParentId},
 		expEdtLst:  []godoo.UserQueryElement{godoo.ByBody, godoo.ByAppending, godoo.ByCompletion},
@@ -178,9 +178,9 @@ func runQueryBuildTests(t *testing.T, tc edit_query_build_test_case) {
 	gotSrchLst, _ := tc.input.determineQueryType(godoo.Get)
 	gotEdtList, _ := tc.input.determineQueryType(godoo.Update)
 
-	gotSrchItm, _ := tc.input.GenerateTodoItem()
+	gotSrchItm, _ := tc.input.setupTodoItemBasedOnUserInput()
 	tc.input.getNewVals = true
-	gotEdtItm, _ := tc.input.GenerateTodoItem()
+	gotEdtItm, _ := tc.input.setupTodoItemBasedOnUserInput()
 
 	same, msg := compareTdoItms(tc.expSrchItm, gotSrchItm)
 	if same {
@@ -331,8 +331,8 @@ func compare(exp, got EditCommand) (bool, string) {
 	if exp.newTag != got.newTag {
 		return false, fmt.Sprintf("No match on newTag. Expected '%v', got '%v'", exp.newTag, got.newTag)
 	}
-	if exp.newlyComplete != got.newlyComplete {
-		return false, fmt.Sprintf("No match on newlyComplete. Expected '%v', got '%v'", exp.newlyComplete, got.newlyComplete)
+	if exp.newToggleComplete != got.newToggleComplete {
+		return false, fmt.Sprintf("No match on newlyComplete. Expected '%v', got '%v'", exp.newToggleComplete, got.newToggleComplete)
 	}
 	return true, "all field values equal"
 }

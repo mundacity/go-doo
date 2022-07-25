@@ -15,7 +15,6 @@ import (
 	godoo "github.com/mundacity/go-doo"
 
 	"github.com/mundacity/go-doo/app"
-	"github.com/mundacity/go-doo/util"
 	lg "github.com/mundacity/quick-logger"
 )
 
@@ -36,10 +35,25 @@ type GetCommand struct {
 	toggleComplete bool
 }
 
+// Returns new get command after setting up flag info and flag-parser
 func NewGetCommand(ctx *app.AppContext) (*GetCommand, error) {
-	getCmd := GetCommand{appCtx: ctx, fs: flag.NewFlagSet("get", flag.ContinueOnError)}
+	getCmd := GetCommand{appCtx: ctx}
 	lg.Logger.Log(lg.Info, "get command created")
 
+	getCmd.setupFlagSet()
+
+	var err error
+	if err = getCmd.setupFlagMapper(ctx.Args); err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("flag parser setup error: %v", err), runtime.Caller)
+	}
+
+	lg.Logger.Log(lg.Info, "flag parser successfully setup")
+	return &getCmd, err
+}
+
+// Describes the flags and argument types associated with the command
+func (getCmd *GetCommand) setupFlagSet() {
+	getCmd.fs = flag.NewFlagSet("get", flag.ContinueOnError)
 	getCmd.fs.IntVar(&getCmd.id, strings.Trim(string(itmId), "-"), 0, "search by item id")
 	getCmd.fs.BoolVar(&getCmd.next, strings.Trim(string(next), "-"), false, "get next item")
 
@@ -60,17 +74,11 @@ func NewGetCommand(ctx *app.AppContext) (*GetCommand, error) {
 	getCmd.fs.BoolVar(&getCmd.complete, strings.Trim(string(finished), "-"), false, "search for completed items")
 	getCmd.fs.BoolVar(&getCmd.toggleComplete, strings.Trim(string(markComplete), "-"), false, "search for unfinished items")
 
-	var err error
-	if err = getCmd.SetupFlagMapper(ctx.Args); err != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("flag parser setup error: %v", err), runtime.Caller)
-	}
-
-	lg.Logger.Log(lg.Info, "flag parser successfully setup")
-	return &getCmd, err
 }
 
-func (getCmd *GetCommand) SetupFlagMapper(userFlags []string) error {
-	canonicalFlags, err := getCmd.GetValidFlags()
+// Pass canonical flags and user input to flag-parser package
+func (getCmd *GetCommand) setupFlagMapper(userFlags []string) error {
+	canonicalFlags, err := getCmd.getValidFlags()
 	if err != nil {
 		return err
 	}
@@ -85,7 +93,8 @@ func (getCmd *GetCommand) SetupFlagMapper(userFlags []string) error {
 	return nil
 }
 
-func (getCmd *GetCommand) GetValidFlags() ([]fp.FlagInfo, error) {
+// Describes valid flag info for flag-parser
+func (getCmd *GetCommand) getValidFlags() ([]fp.FlagInfo, error) {
 	var ret []fp.FlagInfo
 
 	maxIntDigits := getCmd.appCtx.IntDigits
@@ -108,7 +117,7 @@ func (getCmd *GetCommand) GetValidFlags() ([]fp.FlagInfo, error) {
 	return ret, nil
 }
 
-// ParseFlags implements method from ICommand interface
+// ParseInput implements method from ICommand interface
 func (getCmd *GetCommand) ParseInput() error {
 	newArgs, err := getCmd.parser.ParseUserInput()
 
@@ -122,7 +131,40 @@ func (getCmd *GetCommand) ParseInput() error {
 	return getCmd.fs.Parse(getCmd.appCtx.Args)
 }
 
-func (gCmd *GetCommand) GenerateTodoItem() (godoo.TodoItem, error) {
+// Implements Run() method from ICommand interface
+func (gCmd *GetCommand) Run(w io.Writer) error {
+
+	input, _ := gCmd.interpretUserInput()
+
+	var itms []godoo.TodoItem
+	var err error
+
+	qList, err := gCmd.determineQueryType()
+	if err != nil {
+		return err
+	}
+
+	fullQry := godoo.FullUserQuery{QueryOptions: qList, QueryData: input}
+
+	if gCmd.appCtx.Instance == app.Remote {
+		return gCmd.remoteGet(w, fullQry)
+	}
+
+	itms, err = gCmd.appCtx.TodoRepo.GetWhere(fullQry)
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("failed to get item: %v", err), runtime.Caller)
+		return err
+	}
+
+	msg := getOutputGenerationFunc(itms)
+	w.Write([]byte(msg()))
+	lg.Logger.Log(lg.Info, "local item successfully retrieved")
+
+	return nil
+}
+
+// Populates a godoo.TodoItem with user-supplied data to query database
+func (gCmd *GetCommand) interpretUserInput() (godoo.TodoItem, error) {
 	ret := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 
 	ret.Id = gCmd.id
@@ -157,95 +199,7 @@ func (gCmd *GetCommand) GenerateTodoItem() (godoo.TodoItem, error) {
 	return *ret, nil
 }
 
-func (gCmd *GetCommand) Run(w io.Writer) error {
-
-	input, _ := gCmd.GenerateTodoItem()
-
-	var itms []godoo.TodoItem
-	var err error
-
-	qList, err := gCmd.determineQueryType()
-	if err != nil {
-		return err
-	}
-
-	fullQry := godoo.FullUserQuery{QueryOptions: qList, QueryData: input}
-
-	if gCmd.appCtx.Instance == app.Remote {
-		return gCmd.remoteGet(w, fullQry)
-	}
-
-	itms, err = gCmd.appCtx.TodoRepo.GetWhere(fullQry)
-	if err != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("failed to get item: %v", err), runtime.Caller)
-		return err
-	}
-
-	msg := gCmd.getFunc(itms)
-	w.Write([]byte(msg()))
-	lg.Logger.Log(lg.Info, "local item successfully retrieved")
-
-	return nil
-}
-
-func (gCmd *GetCommand) remoteGet(w io.Writer, fq godoo.FullUserQuery) error {
-
-	// --> very happy path; need to test
-	baseUrl := gCmd.appCtx.RemoteUrl + "/get"
-
-	body, err := json.Marshal(fq)
-	if err != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json marshalling error: %v", err), runtime.Caller)
-		return err
-	}
-
-	rq, err := http.NewRequest("GET", baseUrl, bytes.NewBuffer(body))
-	if err != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("request generation error: %v", err), runtime.Caller)
-		return err
-	}
-	rq.Header.Set("content-type", "application/json")
-
-	resp, err := gCmd.appCtx.Client.Do(rq)
-	if err != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
-		return err
-	}
-	defer resp.Body.Close()
-
-	var itms []godoo.TodoItem
-	d := json.NewDecoder(resp.Body)
-	var err2 error
-
-	if err2 = d.Decode(&itms); err2 != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json decoding error: %v", err2), runtime.Caller)
-	}
-
-	msg := gCmd.getFunc(itms)
-	w.Write([]byte(msg()))
-
-	lg.Logger.Logf(lg.Info, "successfully retrieved %v item/s", len(itms))
-
-	return nil
-}
-
-func (gCmd *GetCommand) getFunc(itms []godoo.TodoItem) func() string {
-	f := func() string {
-		var str string
-		for _, itm := range itms {
-			str += gCmd.buildOutput(itm) + "\n"
-		}
-		c := len(itms)
-		s := ""
-		if c == 0 || c > 1 {
-			s = "s"
-		}
-		str += fmt.Sprintf("--> Returned %v item%v\n", c, s)
-		return str
-	}
-	return f
-}
-
+// Determines the different elements by which the user is searching for an item
 func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQueryOption, error) {
 	var ret []godoo.UserQueryOption
 
@@ -297,44 +251,47 @@ func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQueryOption, error) {
 	return ret, nil
 }
 
-func getUpperDateBound(dateText string, dateLayout string) time.Time {
-	splt := splitDates(dateText)
-	var d time.Time
+// Coordinates request/response in remote mode
+func (gCmd *GetCommand) remoteGet(w io.Writer, fq godoo.FullUserQuery) error {
 
-	if len(splt) > 1 {
-		d, _ = time.Parse(dateLayout, splt[1])
+	// --> very happy path; need to test
+	baseUrl := gCmd.appCtx.RemoteUrl + "/get"
+
+	// building request
+	body, err := json.Marshal(fq)
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json marshalling error: %v", err), runtime.Caller)
+		return err
 	}
 
-	return d
-}
-
-func splitDates(s string) []string {
-	return strings.Split(s, ":")
-}
-
-func (gCmd *GetCommand) buildOutput(itm godoo.TodoItem) string {
-	var retStr string
-	tagOut := getTagOutput(itm.Tags)
-	deadline := "n/a"
-	if !itm.Deadline.IsZero() {
-		deadline = util.StringFromDate(itm.Deadline)
+	rq, err := http.NewRequest("GET", baseUrl, bytes.NewBuffer(body))
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("request generation error: %v", err), runtime.Caller)
+		return err
 	}
-	done := Red + "Not done" + Reset
-	if itm.IsComplete {
-		done = Green + "Done" + Reset
-	}
-	retStr += fmt.Sprintf(Yellow+"-- Id:"+Reset+" [%v][%v]\n\t"+Cyan+"- Created:"+Reset+"  %v     "+Cyan+"ParentId:"+Reset+" %v     "+Cyan+"Priority:"+Reset+" %v\n\t"+Cyan+"- Deadline:"+Reset+" %v\n\t"+Cyan+"- Tags:"+Reset+"     %v\n\t"+Cyan+"- Body:"+Reset+"     %v\n", itm.Id, done, util.StringFromDate(itm.CreationDate), itm.ParentId, itm.Priority, deadline, tagOut, itm.Body)
-	return retStr
-}
+	rq.Header.Set("content-type", "application/json")
 
-func getTagOutput(mp map[string]struct{}) string {
-	var ret string
-	sep := "; "
-
-	for v := range mp {
-		if len(v) > 0 {
-			ret += v + sep
-		}
+	// getting response
+	resp, err := gCmd.appCtx.Client.Do(rq)
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
+		return err
 	}
-	return strings.TrimSuffix(ret, "; ")
+	defer resp.Body.Close()
+
+	var itms []godoo.TodoItem
+	d := json.NewDecoder(resp.Body)
+	var err2 error
+
+	if err2 = d.Decode(&itms); err2 != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json decoding error: %v", err2), runtime.Caller)
+	}
+
+	// printing to console
+	msg := getOutputGenerationFunc(itms)
+	w.Write([]byte(msg()))
+
+	lg.Logger.Logf(lg.Info, "successfully retrieved %v item/s", len(itms))
+
+	return nil
 }
