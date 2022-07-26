@@ -141,6 +141,10 @@ github.com/mundacity/flag-parser v0.0.0-20220615114554-e7aa040a881e h1:Y1pqT05rE
 github.com/mundacity/flag-parser v0.0.0-20220615114554-e7aa040a881e/go.mod h1:HBX+gGUB8mTt9dH8X21WvqifEBvB0C6TA83+bmZ+pgI=
 github.com/mundacity/flag-parser v0.0.0-20220615125243-493c7dd0c9ef h1:xoCFdJ0F048Bhbe2aGcA84tnTqUS0dgzLTjx2LNIiBE=
 github.com/mundacity/flag-parser v0.0.0-20220615125243-493c7dd0c9ef/go.mod h1:HBX+gGUB8mTt9dH8X21WvqifEBvB0C6TA83+bmZ+pgI=
+github.com/mundacity/quick-logger v0.0.0-20220722154421-563f091ed016 h1:zHUKNAgporKmJoNHoZbRV5UG+IbEkTdGZy/64xiGrxU=
+github.com/mundacity/quick-logger v0.0.0-20220722154421-563f091ed016/go.mod h1:gcSCu577px6UAqTCa/P3bNkzXvQUrd5ZxH823rwhwao=
+github.com/mundacity/quick-logger v0.0.0-20220722225614-0a8bb478dd7d h1:QBCKiWEc7JrQQnaupW265Gh5x+sKEuu80WViQzhU7ao=
+github.com/mundacity/quick-logger v0.0.0-20220722225614-0a8bb478dd7d/go.mod h1:dWWafRitmEb9xFqQztqfz3sLzBvG+NeQtOlYoQkuQOQ=
 github.com/pelletier/go-toml v1.9.5 h1:4yBQzkHv+7BHq2PQUZF3Mx0IYxG7LsP222s7Agd3ve8=
 github.com/pelletier/go-toml v1.9.5/go.mod h1:u1nR/EPcESfeI/szUZKdtJ0xRNbUoANCkoOuaOx1Y+c=
 github.com/pelletier/go-toml/v2 v2.0.2 h1:+jQXlF3scKIcSEKkdHzXhCTDLPFi5r1wnK6yPS+49Gw=

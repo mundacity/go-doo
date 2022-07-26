@@ -10,39 +10,59 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
 	fp "github.com/mundacity/flag-parser"
 	godoo "github.com/mundacity/go-doo"
 	"github.com/mundacity/go-doo/app"
+	lg "github.com/mundacity/quick-logger"
 )
 
 type EditCommand struct {
-	appCtx        *app.AppContext
-	parser        fp.FlagParser
-	fs            *flag.FlagSet
-	getNewVals    bool
-	id            int
-	body          string
-	childOf       int
-	deadline      string
-	creationDate  string
-	tagInput      string // add new, edit/delete existing
-	appending     bool
-	replacing     bool
-	complete      bool
-	newTag        string
-	newBody       string
-	newDeadline   string
-	newParent     int
-	newlyComplete bool
+	appCtx            *app.AppContext
+	parser            fp.FlagParser
+	fs                *flag.FlagSet
+	getNewVals        bool
+	id                int
+	body              string
+	childOf           int
+	deadline          string
+	creationDate      string
+	tagInput          string //add new, edit/delete existing
+	appending         bool
+	replacing         bool
+	complete          bool
+	newTag            string
+	newBody           string
+	newDeadline       string
+	newParent         int
+	newToggleComplete bool
 
 	//mode priorityMode TODO
 }
 
+// Sets up flag info & parser before returning a new edit comman
 func NewEditCommand(ctx *app.AppContext) (*EditCommand, error) {
-	eCmd := EditCommand{appCtx: ctx, fs: flag.NewFlagSet("edit", flag.ContinueOnError)}
+	eCmd := EditCommand{appCtx: ctx}
+	lg.Logger.Log(lg.Info, "edit command created")
+
+	eCmd.setupFlagSet()
+
+	var err error
+	if err = eCmd.setupFlagMapper(ctx.Args); err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("flag parser setup error: %v", err), runtime.Caller)
+	}
+
+	lg.Logger.Log(lg.Info, "flag parser successfully setup")
+	return &eCmd, err
+}
+
+// Describes the flags and argument types associated with the command
+func (eCmd *EditCommand) setupFlagSet() {
+
+	eCmd.fs = flag.NewFlagSet("edit", flag.ContinueOnError)
 
 	// selectors to determine which items to edit
 	eCmd.fs.IntVar(&eCmd.id, strings.Trim(string(itmId), "-"), 0, "edit item by id")
@@ -58,23 +78,21 @@ func NewEditCommand(ctx *app.AppContext) (*EditCommand, error) {
 	eCmd.fs.BoolVar(&eCmd.replacing, strings.Trim(string(replaceMode), "-"), false, "replace existing body/tag with new input")
 
 	// elements of item/s to edit
-	eCmd.fs.BoolVar(&eCmd.newlyComplete, strings.Trim(string(markComplete), "-"), false, "toggle item completion")
+	eCmd.fs.BoolVar(&eCmd.newToggleComplete, strings.Trim(string(markComplete), "-"), false, "toggle item completion")
 	eCmd.fs.StringVar(&eCmd.newTag, strings.Trim(string(changeTag), "-"), "", "change item/s tag")
 	eCmd.fs.StringVar(&eCmd.newDeadline, strings.Trim(string(changedDeadline), "-"), "", "change item/s deadline")
 	eCmd.fs.StringVar(&eCmd.newBody, strings.Trim(string(changeBody), "-"), "", "change item/s body")
 	eCmd.fs.IntVar(&eCmd.newParent, strings.Trim(string(changeParent), "-"), 0, "change item/s parent id")
-
-	err := eCmd.SetupFlagMapper(ctx.Args)
-	return &eCmd, err
 }
 
-func (eCmd *EditCommand) SetupFlagMapper(userFlags []string) error {
-	canonicalFlags, err := eCmd.GetValidFlags()
+// Pass canonical flags and user input to flag-parser package
+func (eCmd *EditCommand) setupFlagMapper(userFlags []string) error {
+	canonicalFlags, err := eCmd.getValidFlags()
 	if err != nil {
 		return err
 	}
 
-	eCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(_getNowString(), eCmd.appCtx.DateLayout))
+	eCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(getNowString(), eCmd.appCtx.DateLayout))
 
 	err = eCmd.parser.CheckInitialisation()
 	if err != nil {
@@ -84,7 +102,8 @@ func (eCmd *EditCommand) SetupFlagMapper(userFlags []string) error {
 	return nil
 }
 
-func (eCmd *EditCommand) GetValidFlags() ([]fp.FlagInfo, error) {
+// Describes valid flag info for flag-parser
+func (eCmd *EditCommand) getValidFlags() ([]fp.FlagInfo, error) {
 	var ret []fp.FlagInfo
 
 	maxIntDigits := eCmd.appCtx.IntDigits
@@ -111,19 +130,89 @@ func (eCmd *EditCommand) GetValidFlags() ([]fp.FlagInfo, error) {
 	return ret, nil
 }
 
-// ParseFlags implements method from ICommand interface
-func (eCmd *EditCommand) ParseFlags() error {
+// ParseInput implements method from ICommand interface
+func (eCmd *EditCommand) ParseInput() error {
 	newArgs, err := eCmd.parser.ParseUserInput()
 
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("user input parsing error: %v", err), runtime.Caller)
 		return err
 	}
 
 	eCmd.appCtx.Args = newArgs
+	lg.Logger.Log(lg.Info, "successfully parsed user input")
 	return eCmd.fs.Parse(eCmd.appCtx.Args)
 }
 
-func (eCmd *EditCommand) GenerateTodoItem() (godoo.TodoItem, error) {
+// Implements ICommand Run() method
+func (eCmd *EditCommand) Run(w io.Writer) error {
+
+	eCmd.getAdditionalInput()
+	srchQryLst, err := eCmd.determineQueryType(godoo.Get)
+	if err != nil {
+		return err
+	}
+	edtQryLst, err := eCmd.determineQueryType(godoo.Update)
+	if err != nil {
+		return err
+	}
+
+	toEdit, _ := eCmd.setupTodoItemBasedOnUserInput()
+	eCmd.getNewVals = true
+	newVals, _ := eCmd.setupTodoItemBasedOnUserInput()
+	eCmd.getNewVals = false
+
+	srchFq := godoo.FullUserQuery{QueryOptions: srchQryLst, QueryData: toEdit}
+	edtFq := godoo.FullUserQuery{QueryOptions: edtQryLst, QueryData: newVals}
+
+	if eCmd.appCtx.Instance == app.Remote {
+		return eCmd.remoteEdit(w, srchFq, edtFq)
+	}
+
+	num, err := eCmd.appCtx.TodoRepo.UpdateWhere(srchFq, edtFq)
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("failed to edit item: %v", err), runtime.Caller)
+		return err
+	}
+
+	printEditMessage(num, w)
+	lg.Logger.Log(lg.Info, "local item successfully edited")
+	return nil
+}
+
+// Checks whether user replacing or appending to existing item bodies
+func (eCmd *EditCommand) getAdditionalInput() error {
+	if len(eCmd.newBody) > 0 || len(eCmd.newTag) > 0 {
+		if !eCmd.appending && !eCmd.replacing {
+			// get user input to figure what they want
+			fmt.Print("\nNo edit mode specified. Choose append (a), replace (r). Any other key to cancel...\n")
+
+			lg.Logger.Log(lg.Info, "user asked for additional input")
+
+			rdr := bufio.NewReader(os.Stdin)
+			choice, _, err := rdr.ReadRune()
+			if err != nil {
+				lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving additional user input: %v", err), runtime.Caller)
+				fmt.Printf("Error occurred: %v, cancelling operation.", err)
+			}
+
+			if choice == 'r' {
+				eCmd.replacing = true
+			} else if choice == 'a' {
+				eCmd.appending = true
+			} else {
+				lg.Logger.Logf(lg.Warning, "invalid additional user input: %v", choice)
+				return errors.New("cancelling operation")
+			}
+			lg.Logger.Logf(lg.Info, "user choice: %v", choice)
+		}
+	}
+	return nil
+}
+
+// Populates a godoo.TodoItem with user-supplied data to pass
+// to database for querying/editing
+func (eCmd *EditCommand) setupTodoItemBasedOnUserInput() (godoo.TodoItem, error) {
 	ret := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 
 	if !eCmd.getNewVals { // searching
@@ -166,7 +255,7 @@ func (eCmd *EditCommand) GenerateTodoItem() (godoo.TodoItem, error) {
 		if eCmd.newTag != "" {
 			ret.Tags[eCmd.newTag] = struct{}{}
 		}
-		if eCmd.newlyComplete {
+		if eCmd.newToggleComplete {
 			ret.IsComplete = true
 		}
 	}
@@ -174,71 +263,7 @@ func (eCmd *EditCommand) GenerateTodoItem() (godoo.TodoItem, error) {
 	return *ret, nil
 }
 
-func (eCmd *EditCommand) getAdditionalInput() error {
-	if len(eCmd.newBody) > 0 || len(eCmd.newTag) > 0 {
-		if !eCmd.appending && !eCmd.replacing {
-			// get user input to figure what they want
-			fmt.Print("\nNo edit mode specified. Choose append (a), replace (r). Any other key to cancel...\n")
-			rdr := bufio.NewReader(os.Stdin)
-			choice, _, err := rdr.ReadRune()
-			if err != nil {
-				fmt.Printf("Error occurred: %v, cancelling operation.", err)
-			}
-
-			if choice == 'r' {
-				eCmd.replacing = true
-			} else if choice == 'a' {
-				eCmd.appending = true
-			} else {
-				return errors.New("cancelling operation")
-			}
-		}
-	}
-	return nil
-}
-
-func (eCmd *EditCommand) Run(w io.Writer) error {
-
-	eCmd.getAdditionalInput()
-	srchQryLst, err := eCmd.determineQueryType(godoo.Get)
-	if err != nil {
-		return err
-	}
-	edtQryLst, err := eCmd.determineQueryType(godoo.Update)
-	if err != nil {
-		return err
-	}
-
-	toEdit, _ := eCmd.GenerateTodoItem()
-	eCmd.getNewVals = true
-	newVals, _ := eCmd.GenerateTodoItem()
-	eCmd.getNewVals = false
-
-	srchFq := godoo.FullUserQuery{QueryOptions: srchQryLst, QueryData: toEdit}
-	edtFq := godoo.FullUserQuery{QueryOptions: edtQryLst, QueryData: newVals}
-
-	if eCmd.appCtx.Instance == app.Remote {
-		return eCmd.remoteEdit(w, srchFq, edtFq)
-	}
-
-	num, err := eCmd.appCtx.TodoRepo.UpdateWhere(srchFq, edtFq)
-	if err != nil {
-		return err
-	}
-
-	getMsg(num, w)
-	return nil
-}
-
-func getMsg(num int, w io.Writer) {
-	s := ""
-	if num == 0 || num > 1 {
-		s = "s"
-	}
-	msg := fmt.Sprintf("--> Edited %v item%v\n", num, s)
-	w.Write([]byte(msg))
-}
-
+// In remote mode, coordinates request & response to/from remote server.
 func (eCmd *EditCommand) remoteEdit(w io.Writer, srchFq, edtFq godoo.FullUserQuery) error {
 	// --> very happy path; need to test
 	baseUrl := eCmd.appCtx.RemoteUrl + "/edit"
@@ -247,17 +272,20 @@ func (eCmd *EditCommand) remoteEdit(w io.Writer, srchFq, edtFq godoo.FullUserQue
 
 	body, err := json.Marshal(s)
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json marshalling error: %v", err), runtime.Caller)
 		return err
 	}
 
 	rq, err := http.NewRequest("PUT", baseUrl, bytes.NewBuffer(body))
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("request generation error: %v", err), runtime.Caller)
 		return err
 	}
 	rq.Header.Set("content-type", "application/json")
 
 	resp, err := eCmd.appCtx.Client.Do(rq)
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err
 	}
 	defer resp.Body.Close()
@@ -265,13 +293,19 @@ func (eCmd *EditCommand) remoteEdit(w io.Writer, srchFq, edtFq godoo.FullUserQue
 	var i int
 
 	d := json.NewDecoder(resp.Body)
-	d.Decode(&i)
 
-	getMsg(i, w)
+	if err = d.Decode(&i); err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json decoding error: %v", err), runtime.Caller)
+	}
+
+	printEditMessage(i, w)
+	lg.Logger.Logf(lg.Info, "%v remote item/s successfully edited", i)
 
 	return nil
 }
 
+// Interprets user input to determine intentions in both the search and edit
+// portions of input. If no edit options provided, returns error.
 func (eCmd *EditCommand) determineQueryType(qType godoo.QueryType) ([]godoo.UserQueryOption, error) {
 	var ret []godoo.UserQueryOption
 
@@ -305,6 +339,9 @@ func (eCmd *EditCommand) determineQueryType(qType godoo.QueryType) ([]godoo.User
 		if eCmd.complete {
 			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCompletion})
 		}
+
+		lg.Logger.QuickFmtLog(lg.Info, "query options (getting): ", ", ", ret)
+
 	case godoo.Update:
 		if eCmd.newParent != 0 {
 			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByParentId})
@@ -328,9 +365,16 @@ func (eCmd *EditCommand) determineQueryType(qType godoo.QueryType) ([]godoo.User
 		if eCmd.replacing {
 			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByReplacement})
 		}
-		if eCmd.newlyComplete {
+		if eCmd.newToggleComplete {
 			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCompletion})
 		}
+
+		if len(ret) == 0 {
+			lg.Logger.LogWithCallerInfo(lg.Error, "no edit options provided", runtime.Caller)
+			return ret, &NoEditInstructionsError{}
+		}
+
+		lg.Logger.QuickFmtLog(lg.Info, "query options (editing): ", ", ", ret)
 	}
 
 	return ret, nil

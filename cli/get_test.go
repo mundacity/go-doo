@@ -103,7 +103,7 @@ func _runGetTest(t *testing.T, tc get_test_case) {
 	nowStr := returnNowString()
 	gCmd.parser.NowMoment, _ = time.Parse(gCmd.appCtx.DateLayout, nowStr)
 
-	gCmd.ParseFlags()
+	gCmd.ParseInput()
 
 	same, msg := compareResults(tc.expected, *gCmd)
 
@@ -125,7 +125,7 @@ func TestGetQueryBuilding(t *testing.T) {
 
 func runGetQueryBuildTests(t *testing.T, tc get_query_build_test_case) {
 	gotSrchLst, _ := tc.input.determineQueryType()
-	gotSrchItm, _ := tc.input.GenerateTodoItem()
+	gotSrchItm, _ := tc.input.interpretUserInput()
 
 	same, msg := compareTdoItms(tc.expSrchItm, gotSrchItm)
 	if same {

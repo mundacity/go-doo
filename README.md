@@ -3,13 +3,15 @@
 
 ## Description 
 
-Go-doo is a simple command line notes/todo manager that lets you create, read & edit your notes or todo items. It'll support deletions soon. It uses SQLite for storage, but could easily support others. 
+Go-doo is a command line notes/todo manager that lets you create, read & edit your notes or todo items - deletions coming soon. It supports both local and remote storage. Local is the default, and the remote option is determined by a config file. It uses SQLite for the database, but could support others easily enough. 
+
+The remote storage option is only intended for use on the same LAN, rather than over the internet, to allow multiple machines/people to share share the same database for notes/todo items.
 
 It uses a forgiving input parser so can handle spaces, meaning you're not required to use quotation marks like you are in commit messages, for example. So `godoo add -b input with spaces` would create an item with a body of `"input with spaces"`.
 
-It also uses a shorthand date format, where `1y1m8d` is interpreted as 1 year, 1 month and 8 days from now. You can use full date strings like `2022-06-01` if you prefer. The date shorthand also supports negative numbers, so searching for an item with a deadline of `-8m` means the deadline was 8 months ago. 
+It also uses a shorthand date format, where e.g. `1y1m8d` is interpreted as 1 year, 1 month and 8 days from now. You can use full date strings like `2022-06-01` if you prefer. The date shorthand also supports negative numbers, so searching for an item with a deadline of `-8m` means the deadline was 8 months ago. 
 
-You can also work with date ranges using this same shorthand. E.g. `godoo get -d -7d:7d` would return items with a deadline within a 14 day range, from 7 days before to 7 days from now. 
+You can also work with date ranges using the same shorthand. E.g. `godoo get -d -7d:7d` would return items with a deadline within a 14 day range, from 7 days before to 7 days from now. 
 
 # Usage
 
@@ -136,10 +138,12 @@ Not yet supported but will be.
 ## TODO
 
 - Easier setup/installation
-  - Configuration is via an `env` file (Viper). The path for this is currently set in the `config()` method in go-doo/cli/app.go
+  - Configuration is via an `env` file (Viper). The path for this is currently set in the `SetConfigVals()` method in go-doo/app/app.go
   - example config/env file in go-doo/example-env
 - Support deletions 
-  - need to decide if it should be by id only, or to allow the same search functionality as in the `get` and `edit` commands
-- Add http support
-  - For use on the same LAN, by individuals or small groups - don't see a use case for over the internet
+  - need to decide if it should be by id only, or to allow the same search functionality as in the `get` and `edit` commands but maybe with user confirmation
+- add tests for http requests & responses
+  - http support recently added but required more restructuring than expected so tests lacking atm
+- add priority & simple queue functionality for remote storage option
+  - sketched out already, e.g. in `go-doo/todo_priority_list.go
 

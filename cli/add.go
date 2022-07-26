@@ -7,28 +7,18 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime"
 	"strings"
 	"time"
 
 	fp "github.com/mundacity/flag-parser"
 	godoo "github.com/mundacity/go-doo"
 	"github.com/mundacity/go-doo/app"
-	"github.com/mundacity/go-doo/util"
+	lg "github.com/mundacity/quick-logger"
 )
 
-// Lets user add new items
-type AddCommand struct {
-	appCtx       *app.AppContext
-	parser       fp.FlagParser
-	fs           *flag.FlagSet
-	mode         priorityMode
-	body         string // body of the item
-	tagInput     string // tags with delimeter set by environment variable
-	childOf      int    // child of the int argument
-	parentOf     int    // parent of the int argument
-	deadlineDate string
-}
-
+// Feature in progress... TODO
+// relates to priority queue and how remote storage returns the 'next' item
 type priorityMode string
 
 const (
@@ -39,7 +29,68 @@ const (
 	high     priorityMode = "h"
 )
 
-func (aCmd *AddCommand) GetValidFlags() ([]fp.FlagInfo, error) { // too tired to come up with anything more elegant - todo!
+// AddCommand implements the ICommand interface and lets the user add new items to storage
+type AddCommand struct {
+	appCtx       *app.AppContext
+	parser       fp.FlagParser
+	fs           *flag.FlagSet
+	mode         priorityMode
+	body         string //body of the item
+	tagInput     string //tags with delimeter set by environment variable
+	childOf      int    //child of the int argument
+	parentOf     int    //parent of the int argument
+	deadlineDate string
+}
+
+// Returns a new AddCommand, but also sets up the flagset and parser
+func NewAddCommand(ctx *app.AppContext) (*AddCommand, error) {
+	addCmd := AddCommand{appCtx: ctx}
+	lg.Logger.Log(lg.Info, "add command created")
+
+	addCmd.setupFlagSet()
+
+	err := addCmd.setupFlagMapper(ctx.Args)
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("flag parser setup error: %v", err), runtime.Caller)
+		return &addCmd, err
+	}
+
+	lg.Logger.Log(lg.Info, "flag parser successfully setup")
+	return &addCmd, err
+}
+
+// Describes the flags and argument types associated with the command
+func (aCmd *AddCommand) setupFlagSet() {
+
+	aCmd.fs = flag.NewFlagSet("add", flag.ContinueOnError)
+
+	aCmd.fs.StringVar((*string)(&aCmd.mode), strings.Trim(string(mode), "-"), string(none), "mode of operation: deadline, priority, none (default)")
+	aCmd.fs.StringVar(&aCmd.body, strings.Trim(string(body), "-"), "", "main content of the todo item")
+	aCmd.fs.StringVar(&aCmd.tagInput, strings.Trim(string(tag), "-"), "", "tag(s) added with/to the new item")
+	aCmd.fs.IntVar(&aCmd.childOf, strings.Trim(string(child), "-"), 0, "make item a child of another item")
+	aCmd.fs.IntVar(&aCmd.parentOf, strings.Trim(string(parent), "-"), 0, "make item a parent of another item")
+	aCmd.fs.StringVar(&aCmd.deadlineDate, strings.Trim(string(deadline), "-"), "", "when item needs to be completed by")
+}
+
+// Pass canonical flags and user input to flag-parser package
+func (aCmd *AddCommand) setupFlagMapper(userFlags []string) error {
+	canonicalFlags, err := aCmd.getValidFlags()
+	if err != nil {
+		return err
+	}
+
+	aCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(getNowString(), aCmd.appCtx.DateLayout))
+
+	err = aCmd.parser.CheckInitialisation()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Describes valid flag info for flag-parser
+func (aCmd *AddCommand) getValidFlags() ([]fp.FlagInfo, error) {
 	var ret []fp.FlagInfo
 
 	lenMax := aCmd.appCtx.MaxLen
@@ -56,58 +107,24 @@ func (aCmd *AddCommand) GetValidFlags() ([]fp.FlagInfo, error) { // too tired to
 	return ret, nil
 }
 
-func NewAddCommand(ctx *app.AppContext) (*AddCommand, error) {
-	addCmd := AddCommand{appCtx: ctx, fs: flag.NewFlagSet("add", flag.ContinueOnError)}
-
-	addCmd.fs.StringVar((*string)(&addCmd.mode), strings.Trim(string(mode), "-"), string(none), "mode of operation: deadline, priority, none (default)")
-	addCmd.fs.StringVar(&addCmd.body, strings.Trim(string(body), "-"), "", "main content of the todo item")
-	addCmd.fs.StringVar(&addCmd.tagInput, strings.Trim(string(tag), "-"), "", "tag(s) added with/to the new item")
-	addCmd.fs.IntVar(&addCmd.childOf, strings.Trim(string(child), "-"), 0, "make item a child of another item")
-	addCmd.fs.IntVar(&addCmd.parentOf, strings.Trim(string(parent), "-"), 0, "make item a parent of another item")
-	addCmd.fs.StringVar(&addCmd.deadlineDate, strings.Trim(string(deadline), "-"), "", "when item needs to be completed by")
-
-	err := addCmd.SetupFlagMapper(ctx.Args)
-
-	return &addCmd, err
-}
-
-func (aCmd *AddCommand) SetupFlagMapper(userFlags []string) error {
-	canonicalFlags, err := aCmd.GetValidFlags()
-	if err != nil {
-		return err
-	}
-
-	aCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(_getNowString(), aCmd.appCtx.DateLayout))
-
-	err = aCmd.parser.CheckInitialisation()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func _getNowString() string {
-	n := time.Now()
-	return util.StringFromDate(n)
-}
-
-// ParseFlags implements method from ICommand interface
-func (aCmd *AddCommand) ParseFlags() error {
+// ParseInput implements method from ICommand interface
+func (aCmd *AddCommand) ParseInput() error {
 	newArgs, err := aCmd.parser.ParseUserInput()
 
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("user input parsing error: %v", err), runtime.Caller)
 		return err
 	}
 
 	aCmd.appCtx.Args = newArgs
+	lg.Logger.Log(lg.Info, "successfully parsed user input")
 	return aCmd.fs.Parse(aCmd.appCtx.Args)
 }
 
 // Run implements method from ICommand interface
 func (aCmd *AddCommand) Run(w io.Writer) error {
 
-	td, _ := aCmd.GenerateTodoItem()
+	td, _ := aCmd.setUpItemFromUserInput()
 
 	if aCmd.appCtx.Instance == app.Remote {
 		return aCmd.remoteAdd(w, td)
@@ -115,52 +132,18 @@ func (aCmd *AddCommand) Run(w io.Writer) error {
 
 	id, err := aCmd.appCtx.TodoRepo.Add(&td)
 	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("failed to add item: %v", err), runtime.Caller)
 		return err
 	}
 
-	printMsg(int(id), w)
+	printAddMessage(int(id), w)
+	lg.Logger.Log(lg.Info, "local item successfully added")
 
 	return nil
 }
 
-func printMsg(id int, w io.Writer) {
-	msg := fmt.Sprintf("Creation successful, ItemId: %v\n", id)
-	w.Write([]byte(msg))
-}
-
-func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
-
-	// --> very happy path; need to test
-	baseUrl := aCmd.appCtx.RemoteUrl + "/add"
-
-	body, err := json.Marshal(td)
-	if err != nil {
-		return err
-	}
-
-	rq, err := http.NewRequest("POST", baseUrl, bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-	rq.Header.Set("content-type", "application/json")
-
-	resp, err := aCmd.appCtx.Client.Do(rq)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	var i int64
-
-	d := json.NewDecoder(resp.Body)
-	d.Decode(&i)
-
-	printMsg(int(i), w)
-
-	return nil
-}
-
-func (aCmd *AddCommand) GenerateTodoItem() (godoo.TodoItem, error) {
+// Populates a godoo.TodoItem with user-supplied data for transer to database
+func (aCmd *AddCommand) setUpItemFromUserInput() (godoo.TodoItem, error) {
 	var td godoo.TodoItem
 
 	if len(aCmd.deadlineDate) > 0 {
@@ -188,6 +171,45 @@ func (aCmd *AddCommand) GenerateTodoItem() (godoo.TodoItem, error) {
 
 	parseTagInput(&td, aCmd.tagInput, aCmd.appCtx.TagDemlim)
 	return td, nil
+}
+
+func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
+
+	// --> very happy path; need to test
+	baseUrl := aCmd.appCtx.RemoteUrl + "/add"
+
+	body, err := json.Marshal(td)
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json marshalling error: %v", err), runtime.Caller)
+		return err
+	}
+
+	rq, err := http.NewRequest("POST", baseUrl, bytes.NewBuffer(body))
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("request generation error: %v", err), runtime.Caller)
+		return err
+	}
+	rq.Header.Set("content-type", "application/json")
+
+	resp, err := aCmd.appCtx.Client.Do(rq)
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
+		return err
+	}
+	defer resp.Body.Close()
+
+	var i int64
+
+	d := json.NewDecoder(resp.Body)
+
+	if err = d.Decode(&i); err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json decoding error: %v", err), runtime.Caller)
+	}
+
+	printAddMessage(int(i), w)
+	lg.Logger.Log(lg.Info, "remote item successfully added")
+
+	return nil
 }
 
 // helper to parse delimited tag input;
