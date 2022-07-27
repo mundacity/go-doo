@@ -12,7 +12,7 @@ import (
 
 type Handler struct {
 	Repo         godoo.IRepository
-	PriorityList godoo.PriorityList
+	PriorityList *godoo.PriorityList
 }
 
 // Returns a new http handler. If runPl is true, then the handler will
@@ -27,8 +27,8 @@ func NewHandler(runPl bool, repo godoo.IRepository) Handler {
 	return h
 }
 
-func (h Handler) setupPriorityList() { // todo look at go routines for this (maybe just the callers)
-	h.PriorityList = *godoo.NewPriorityList()
+func (h *Handler) setupPriorityList() { // todo look at go routines for this (maybe just the callers)
+	h.PriorityList = godoo.NewPriorityList()
 	all, _ := h.Repo.GetAll()
 
 	for _, v := range all {
@@ -100,48 +100,58 @@ func (h Handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 	// parse user query
 	var fq godoo.FullUserQuery
 	d := json.NewDecoder(r.Body)
-	err = d.Decode(&fq)
 
+	err = d.Decode(&fq)
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("bad request: %v", err), runtime.Caller)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	//check priority queue if necessary
-	if len(fq.QueryOptions) == 1 && fq.QueryOptions[0].Elem == godoo.ByNextPriority {
-		itm, err := h.runGetNextByPriority(fq, true)
-		if err != nil { //already logged by this point
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	// handle get by priority mode/date
+	if len(fq.QueryOptions) == 1 {
 
-		itms = append(itms, itm)
-	}
-	//check priority queue by date mode if necessary
-	if fq.QueryOptions[0].Elem == godoo.ByNextDate {
-
-		itm, err := h.runGetNextByDate(fq, true)
-		if err != nil { //already logged by this point
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		itms = append(itms, itm)
-
-	} else { //standard query mode
-
-		itms, err = h.Repo.GetWhere(fq)
+		itm, done, msg, err := h.handleQueueMode(fq)
 		if err != nil {
-			lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("server error: %v", err), runtime.Caller)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
+		if done {
+			itms = append(itms, itm)
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(itms)
+			lg.Logger.Logf(lg.Info, "get handler (%v) completed execution", msg)
+			return
+		}
+	}
+
+	// standard get query
+	itms, err = h.Repo.GetWhere(fq)
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("server error: %v", err), runtime.Caller)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(itms)
 	lg.Logger.Log(lg.Info, "get handler completed execution")
+}
+
+func (h *Handler) handleQueueMode(fq godoo.FullUserQuery) (itm godoo.TodoItem, done bool, logMsg string, err error) {
+
+	done = false
+	if fq.QueryOptions[0].Elem == godoo.ByNextPriority {
+		itm, err = h.runGetNextByPriority(fq, true)
+		done = true
+		logMsg = "priority mode"
+	}
+	if fq.QueryOptions[0].Elem == godoo.ByNextDate {
+		itm, err = h.runGetNextByDate(fq, true)
+		done = true
+		logMsg = "date priority mode"
+	}
+	return itm, done, logMsg, err
 }
 
 // Pops the next item off the queue by priority. If rePush is true, the item is
