@@ -43,6 +43,7 @@ type temp_item struct {
 	body         string
 	isComplete   bool
 	tag          string
+	priority     int
 }
 
 // Field & value pairing to allow for composite where clauses
@@ -63,6 +64,7 @@ func (r *Repo) tempConversion(tmp temp_item) godoo.TodoItem {
 	ret.Body = tmp.body
 	ret.IsComplete = tmp.isComplete
 	ret.Tags[tmp.tag] = struct{}{}
+	ret.Priority = godoo.PriorityLevel(tmp.priority)
 
 	return ret
 }
@@ -84,7 +86,7 @@ func getInsertSql(db godoo.DbType, tbl table) string {
 	switch db {
 	case godoo.Sqlite:
 		if tbl == items {
-			return "insert into items (parentId, creationDate, deadline, body) values (?, ?, ?, ?)"
+			return "insert into items (parentId, creationDate, deadline, body, priority) values (?, ?, ?, ?)"
 		} else if tbl == tags {
 			return "INSERT INTO tags (itemId, tag) VALUES (?, ?)"
 		}
@@ -96,7 +98,7 @@ func getSelectSql(db godoo.DbType, tbl table) string {
 	// table doesn't matter atm
 	switch db {
 	case godoo.Sqlite:
-		return "select i.id, parentId, creationDate, deadline, body, isComplete, ifnull(tag, '') tag " +
+		return "select i.id, parentId, creationDate, deadline, body, isComplete, ifnull(tag, '') tag, priority " +
 			"from items i left join tags t " +
 			"on i.id = t.itemId"
 	}
@@ -122,7 +124,7 @@ func (sr *Repo) processQuery(all *sql.Rows, mp map[int]*godoo.TodoItem) ([]godoo
 	for all.Next() {
 		// read row into temp item
 		var itm temp_item
-		if err := all.Scan(&itm.id, &itm.parentId, &itm.creationDate, &itm.deadline, &itm.body, &itm.isComplete, &itm.tag); err != nil {
+		if err := all.Scan(&itm.id, &itm.parentId, &itm.creationDate, &itm.deadline, &itm.body, &itm.isComplete, &itm.tag, &itm.priority); err != nil {
 			return nil, err
 		}
 

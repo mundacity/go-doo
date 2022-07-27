@@ -46,7 +46,7 @@ func (r *Repo) Add(itm *godoo.TodoItem) (int64, error) {
 
 	sql := getSql(godoo.Add, r.kind, items)
 
-	res, err := tx.Exec(sql, itm.ParentId, util.StringFromDate(itm.CreationDate), d, itm.Body)
+	res, err := tx.Exec(sql, itm.ParentId, util.StringFromDate(itm.CreationDate), d, itm.Body, int(itm.Priority))
 	if err != nil {
 		return 0, err
 	}
@@ -175,7 +175,7 @@ func getColAndVal(q godoo.UserQueryOption, input godoo.TodoItem) (string, any) {
 	case godoo.ByBody:
 		return "body", input.Body
 	case godoo.ByNextPriority:
-		return "", nil // would follow a GetAll()
+		return "priority", int(input.Priority) //probably just for updates
 	case godoo.ByNextDate:
 		return "", nil // same
 	case godoo.ByDeadline:
