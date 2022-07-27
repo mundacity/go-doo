@@ -56,6 +56,18 @@ func _getTestCases() []add_test_case {
 		err:      nil,
 		name:     "apostrophe test",
 		envVal:   0,
+	}, {
+		args:     []string{"flagless", "body", "with", "spaces", "-t", "tag1*tag2*tag3", "-m", "h"},
+		expected: godoo.TodoItem{Body: "flagless body with spaces", Priority: godoo.High, Tags: _getTagMap("tag1*tag2*tag3", "*")},
+		err:      nil,
+		name:     "high priority item",
+		envVal:   0,
+	}, {
+		args:     []string{"new item body", "-m", "z"},
+		expected: godoo.TodoItem{Body: "new item body", Priority: godoo.None},
+		err:      &InvalidArgumentError{},
+		name:     "invalid priority arg",
+		envVal:   0,
 	}}
 }
 
@@ -89,7 +101,17 @@ func _runAddTest(t *testing.T, tc add_test_case) {
 	addCmd.parser.NowMoment, _ = time.Parse(addCmd.appCtx.DateLayout, nowStr)
 
 	addCmd.ParseInput()
-	td, _ := addCmd.setUpItemFromUserInput()
+	td, err := addCmd.setUpItemFromUserInput()
+
+	if err != nil {
+		if tc.err == err {
+			t.Logf(">>>>PASS: expected [%v] & got [%v]", tc.err, err)
+			return
+		} else {
+			t.Errorf(">>>>FAIL: expected [%v] & got [%v]", tc.err, err)
+			return
+		}
+	}
 
 	same, msg := compareTestResults(tc.expected, td)
 

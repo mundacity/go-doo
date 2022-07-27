@@ -149,8 +149,10 @@ func (aCmd *AddCommand) setUpItemFromUserInput() (godoo.TodoItem, error) {
 		td = *godoo.NewTodoItem(godoo.WithDateBasedPriority(aCmd.deadlineDate, aCmd.appCtx.DateLayout))
 		d, _ := time.Parse(aCmd.appCtx.DateLayout, aCmd.deadlineDate)
 		td.Deadline = d
-	default:
+	case none:
 		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
+	default:
+		return td, &InvalidArgumentError{}
 	}
 
 	td.Body = aCmd.body
