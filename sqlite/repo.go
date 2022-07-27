@@ -107,7 +107,7 @@ func (r *Repo) UpdateWhere(srchQry, edtQry godoo.FullUserQuery) (int, error) {
 func (r *Repo) GetWhere(qry godoo.FullUserQuery) ([]godoo.TodoItem, error) {
 
 	if len(qry.QueryOptions) == 0 {
-		return r.getAll()
+		return r.GetAll()
 	}
 
 	mp := make(map[int]*godoo.TodoItem)
@@ -129,7 +129,7 @@ func (r *Repo) GetWhere(qry godoo.FullUserQuery) ([]godoo.TodoItem, error) {
 	return ret, nil
 }
 
-func (r *Repo) getAll() ([]godoo.TodoItem, error) {
+func (r *Repo) GetAll() ([]godoo.TodoItem, error) {
 	sql := getSql(godoo.Get, r.kind, all)
 	mp := make(map[int]*godoo.TodoItem)
 

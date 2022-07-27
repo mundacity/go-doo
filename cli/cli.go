@@ -40,6 +40,9 @@ const (
 	changeTag       CMD_FLAG = "-T" //append, replace, or remove
 	appendMode      CMD_FLAG = "--append"
 	replaceMode     CMD_FLAG = "--replace"
+	// Modifies the behaviour of the -n flag (next) in get command.
+	// Instead of next by priority, it's next by date.
+	dateMode CMD_FLAG = "--date"
 )
 
 // RunCli is the main entry point of the cli client application.

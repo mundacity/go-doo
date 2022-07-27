@@ -62,6 +62,7 @@ type FullUserQuery struct {
 
 // Defines methods used to interact with data storage
 type IRepository interface {
+	GetAll() ([]TodoItem, error)
 	GetWhere(query FullUserQuery) ([]TodoItem, error)
 	Add(itm *TodoItem) (int64, error)
 	UpdateWhere(srchQry, edtQry FullUserQuery) (int, error)

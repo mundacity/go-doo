@@ -11,9 +11,9 @@ import (
 )
 
 func main() {
-	r := app.SetSrvContext()
-	// method/s to set up the full todoList to allow for priority queue etc
-	h := srv.Handler{Repo: r}
+
+	r, pl := app.SetSrvContext()
+	h := srv.NewHandler(pl, r)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/test", h.TestHandler)

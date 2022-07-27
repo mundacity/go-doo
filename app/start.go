@@ -18,16 +18,17 @@ func SetupCli(osArgs []string) (*AppContext, error) {
 }
 
 // Sets up server context & logger in a similar way to SetupCli()
-func SetSrvContext() godoo.IRepository {
+func SetSrvContext() (godoo.IRepository, bool) {
 
 	SetConfigVals()
 	cn := getConn()
 	dl := viper.GetString("DATETIME_FORMAT")
+	pl := viper.GetBool("MAINTAIN_PRIORITY_LIST")
 
 	startLogger("srv application started")
-	lg.Logger.Logf(lg.Info, "Conn: %v\n\tDateLayout: %v\n", cn, dl)
+	lg.Logger.Logf(lg.Info, "Conn: %v\n\tDateLayout: %v\n\tPriorityList: %v\n", cn, dl, pl)
 
-	return getRepo(getDbKind(viper.GetString("DB_TYPE")), cn, dl, viper.GetInt("SERVER_PORT"))
+	return getRepo(getDbKind(viper.GetString("DB_TYPE")), cn, dl, viper.GetInt("SERVER_PORT")), pl
 }
 
 // Set default configuration values and read from env file
@@ -41,6 +42,7 @@ func SetConfigVals() {
 	viper.SetDefault("SERVER_PORT", 8080)
 	viper.SetDefault("BASE_URL", "http://localhost")
 	viper.SetDefault("LOG_FILE_PATH", "godoo-logs")
+	viper.SetDefault("MAINTAIN_PRIORITY_LIST", true)
 
 	viper.SetConfigName("env")
 	viper.SetConfigType("env")

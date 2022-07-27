@@ -23,7 +23,7 @@ type GetCommand struct {
 	parser         fp.FlagParser
 	fs             *flag.FlagSet
 	id             int
-	next           bool   // default to priority, but can be changed to date with -d flag
+	next           bool   // default to priority, but can be changed by nextByDate flag
 	tagInput       string // tags with delimeter set by environment variable
 	bodyPhrase     string // key phrase within body
 	childOf        int    // child of the int argument
@@ -33,6 +33,7 @@ type GetCommand struct {
 	getAll         bool
 	complete       bool
 	toggleComplete bool
+	nextByDate     bool
 }
 
 // Returns new get command after setting up flag info and flag-parser
@@ -55,15 +56,9 @@ func NewGetCommand(ctx *app.AppContext) (*GetCommand, error) {
 func (getCmd *GetCommand) setupFlagSet() {
 	getCmd.fs = flag.NewFlagSet("get", flag.ContinueOnError)
 	getCmd.fs.IntVar(&getCmd.id, strings.Trim(string(itmId), "-"), 0, "search by item id")
-	getCmd.fs.BoolVar(&getCmd.next, strings.Trim(string(next), "-"), false, "get next item")
-
-	/* Deadline -d:
-	 	+ default = single fullstop; ignore if default
-		+ if called with no value (i.e. empty '-d' flag), modifies -n flag to return by date instead of defaulting to priority
-		+ if not default but has value (i.e. called with a non-nil string), assumed to be a date to search for
-	*/
-
-	getCmd.fs.StringVar(&getCmd.deadlineDate, strings.Trim(string(date), "-"), ".", "date of existing item; if empty, modifies -n to return based on date instead of defaulting to priority")
+	getCmd.fs.BoolVar(&getCmd.next, strings.Trim(string(next), "-"), false, "get next item in priority list")
+	getCmd.fs.BoolVar(&getCmd.nextByDate, strings.Trim(string(dateMode), "-"), false, "get next item by date priority")
+	getCmd.fs.StringVar(&getCmd.deadlineDate, strings.Trim(string(date), "-"), "", "date of existing item; if empty, modifies -n to return based on date instead of defaulting to priority")
 	getCmd.fs.StringVar(&getCmd.creationDate, strings.Trim(string(creation), "-"), "", "creation date of existing item")
 	getCmd.fs.StringVar(&getCmd.tagInput, strings.Trim(string(tag), "-"), "", "search by item tag")
 	getCmd.fs.StringVar(&getCmd.bodyPhrase, strings.Trim(string(body), "-"), "", "search by known phrase within body")
@@ -103,7 +98,8 @@ func (getCmd *GetCommand) getValidFlags() ([]fp.FlagInfo, error) {
 
 	f8 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
 	f2 := fp.FlagInfo{FlagName: string(itmId), FlagType: fp.Integer, MaxLen: maxIntDigits}
-	f3 := fp.FlagInfo{FlagName: string(next), FlagType: fp.Boolean, Standalone: true} // TODO: implement
+	f3 := fp.FlagInfo{FlagName: string(next), FlagType: fp.Boolean, Standalone: true}
+	f13 := fp.FlagInfo{FlagName: string(dateMode), FlagType: fp.Boolean, Standalone: true}
 	f4 := fp.FlagInfo{FlagName: string(date), FlagType: fp.DateTime, MaxLen: 21, AllowDateRange: true}
 	f5 := fp.FlagInfo{FlagName: string(tag), FlagType: fp.Str, MaxLen: lenMax}
 	f6 := fp.FlagInfo{FlagName: string(child), FlagType: fp.Integer, MaxLen: maxIntDigits}
@@ -113,7 +109,7 @@ func (getCmd *GetCommand) getValidFlags() ([]fp.FlagInfo, error) {
 	f11 := fp.FlagInfo{FlagName: string(finished), FlagType: fp.Boolean, Standalone: true}
 	f12 := fp.FlagInfo{FlagName: string(markComplete), FlagType: fp.Boolean, Standalone: true}
 
-	ret = append(ret, f8, f2, f3, f4, f5, f6, f7, f9, f10, f11, f12)
+	ret = append(ret, f8, f2, f3, f4, f5, f6, f7, f9, f10, f11, f12, f13)
 	return ret, nil
 }
 
@@ -181,7 +177,7 @@ func (gCmd *GetCommand) interpretUserInput() (godoo.TodoItem, error) {
 		splt := strings.Split(gCmd.creationDate, ":")
 		ret.CreationDate, _ = time.Parse(gCmd.appCtx.DateLayout, splt[0]) //only ever need first one
 	}
-	if gCmd.deadlineDate != "" && gCmd.deadlineDate != "." {
+	if len(gCmd.deadlineDate) > 0 {
 		splt := strings.Split(gCmd.deadlineDate, ":")
 		ret.Deadline, _ = time.Parse(gCmd.appCtx.DateLayout, splt[0])
 	}
@@ -203,6 +199,15 @@ func (gCmd *GetCommand) interpretUserInput() (godoo.TodoItem, error) {
 func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQueryOption, error) {
 	var ret []godoo.UserQueryOption
 
+	if gCmd.next {
+		if len(gCmd.deadlineDate) == 0 {
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByNextDate})
+		} else {
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByNextPriority})
+		}
+		return ret, nil // no further params needed/allowed
+	}
+
 	// by id numbers
 	if gCmd.id != 0 {
 		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ById})
@@ -216,14 +221,6 @@ func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQueryOption, error) {
 		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByParentId})
 	}
 
-	if gCmd.next {
-		if gCmd.deadlineDate == "" {
-			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByNextDate})
-		} else if gCmd.deadlineDate == "." {
-			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByNextPriority})
-		}
-	}
-
 	// by string
 	if gCmd.tagInput != "" {
 		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByTag})
@@ -233,11 +230,10 @@ func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQueryOption, error) {
 	}
 
 	// by times
-	if gCmd.deadlineDate != "" {
-		if gCmd.deadlineDate != "." {
-			d := getUpperDateBound(gCmd.deadlineDate, gCmd.appCtx.DateLayout)
-			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByDeadline, UpperBoundDate: d})
-		}
+	if len(gCmd.deadlineDate) > 0 {
+		d := getUpperDateBound(gCmd.deadlineDate, gCmd.appCtx.DateLayout)
+		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByDeadline, UpperBoundDate: d})
+
 	}
 	if gCmd.creationDate != "" {
 		d := getUpperDateBound(gCmd.creationDate, gCmd.appCtx.DateLayout)

@@ -11,3 +11,4 @@ SERVER_PORT = 8080
 BASE_URL = "http://localhost"
 ENABLE_LOGGING = true
 LOG_FILE_PATH = "godoo-srv-logs"
+MAINTAIN_PRIORITY_LIST = true
