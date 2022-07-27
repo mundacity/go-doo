@@ -13,3 +13,9 @@ type NoEditInstructionsError struct{}
 func (n *NoEditInstructionsError) Error() string {
 	return "no edit instructions/uppercase flags provided "
 }
+
+type InvalidArgumentError struct{}
+
+func (i *InvalidArgumentError) Error() string {
+	return "argument not allowed"
+}

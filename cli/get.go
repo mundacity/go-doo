@@ -199,12 +199,8 @@ func (gCmd *GetCommand) interpretUserInput() (godoo.TodoItem, error) {
 func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQueryOption, error) {
 	var ret []godoo.UserQueryOption
 
-	if gCmd.next {
-		if len(gCmd.deadlineDate) == 0 {
-			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByNextDate})
-		} else {
-			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByNextPriority})
-		}
+	if gCmd.next { //todo: add flag for getting by date priority
+		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByNextPriority})
 		return ret, nil // no further params needed/allowed
 	}
 

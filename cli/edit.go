@@ -158,10 +158,19 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 		return err
 	}
 
-	toEdit, _ := eCmd.setupTodoItemBasedOnUserInput()
+	toEdit, err := eCmd.setupTodoItemBasedOnUserInput()
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error while interpreting user input: %v", err), runtime.Caller)
+		return err
+	}
+
 	eCmd.getNewVals = true
-	newVals, _ := eCmd.setupTodoItemBasedOnUserInput()
+	newVals, err := eCmd.setupTodoItemBasedOnUserInput()
 	eCmd.getNewVals = false
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error while interpreting user input: %v", err), runtime.Caller)
+		return err
+	}
 
 	srchFq := godoo.FullUserQuery{QueryOptions: srchQryLst, QueryData: toEdit}
 	edtFq := godoo.FullUserQuery{QueryOptions: edtQryLst, QueryData: newVals}
@@ -260,24 +269,30 @@ func (eCmd *EditCommand) setupTodoItemBasedOnUserInput() (godoo.TodoItem, error)
 			ret.IsComplete = true
 		}
 		if len(string(eCmd.newPriority)) > 0 {
-			ret.Priority = converPriority(string(eCmd.newPriority))
+			p, err := convertPriority(string(eCmd.newPriority))
+			if err != nil {
+				lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("priority conversion error: %v", err), runtime.Caller)
+				return *ret, err
+			}
+
+			ret.Priority = p
 		}
 	}
 
 	return *ret, nil
 }
 
-func converPriority(s string) godoo.PriorityLevel {
+func convertPriority(s string) (godoo.PriorityLevel, error) {
 	sl := strings.ToLower(s)
 	switch sl {
 	case "l":
-		return godoo.Low
+		return godoo.Low, nil
 	case "m":
-		return godoo.Medium
+		return godoo.Medium, nil
 	case "h":
-		return godoo.High
+		return godoo.High, nil
 	default:
-		return godoo.None
+		return godoo.None, &InvalidArgumentError{}
 	}
 }
 
