@@ -39,8 +39,7 @@ type EditCommand struct {
 	newDeadline       string
 	newParent         int
 	newToggleComplete bool
-
-	//mode priorityMode TODO
+	newPriority       priorityMode
 }
 
 // Sets up flag info & parser before returning a new edit comman
@@ -83,6 +82,7 @@ func (eCmd *EditCommand) setupFlagSet() {
 	eCmd.fs.StringVar(&eCmd.newDeadline, strings.Trim(string(changedDeadline), "-"), "", "change item/s deadline")
 	eCmd.fs.StringVar(&eCmd.newBody, strings.Trim(string(changeBody), "-"), "", "change item/s body")
 	eCmd.fs.IntVar(&eCmd.newParent, strings.Trim(string(changeParent), "-"), 0, "change item/s parent id")
+	eCmd.fs.StringVar((*string)(&eCmd.newPriority), strings.Trim(string(changeMode), "-"), "", "change item/s priority mode - low/medium/high")
 }
 
 // Pass canonical flags and user input to flag-parser package
@@ -125,8 +125,9 @@ func (eCmd *EditCommand) getValidFlags() ([]fp.FlagInfo, error) {
 	f11 := fp.FlagInfo{FlagName: string(changeParent), FlagType: fp.Integer, MaxLen: maxIntDigits}
 	f12 := fp.FlagInfo{FlagName: string(changedDeadline), FlagType: fp.DateTime, MaxLen: 20}
 	f13 := fp.FlagInfo{FlagName: string(markComplete), FlagType: fp.Boolean, Standalone: true}
+	f15 := fp.FlagInfo{FlagName: string(changeMode), FlagType: fp.Str, MaxLen: 1}
 
-	ret = append(ret, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14)
+	ret = append(ret, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15)
 	return ret, nil
 }
 
@@ -258,9 +259,26 @@ func (eCmd *EditCommand) setupTodoItemBasedOnUserInput() (godoo.TodoItem, error)
 		if eCmd.newToggleComplete {
 			ret.IsComplete = true
 		}
+		if len(string(eCmd.newPriority)) > 0 {
+			ret.Priority = converPriority(string(eCmd.newPriority))
+		}
 	}
 
 	return *ret, nil
+}
+
+func converPriority(s string) godoo.PriorityLevel {
+	sl := strings.ToLower(s)
+	switch sl {
+	case "l":
+		return godoo.Low
+	case "m":
+		return godoo.Medium
+	case "h":
+		return godoo.High
+	default:
+		return godoo.None
+	}
 }
 
 // In remote mode, coordinates request & response to/from remote server.
@@ -367,6 +385,10 @@ func (eCmd *EditCommand) determineQueryType(qType godoo.QueryType) ([]godoo.User
 		}
 		if eCmd.newToggleComplete {
 			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCompletion})
+		}
+		if len(string(eCmd.newPriority)) > 0 {
+			//ret.Priority = converPriority(string(eCmd.newPriority))
+			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByNextPriority})
 		}
 
 		if len(ret) == 0 {

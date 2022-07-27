@@ -17,18 +17,6 @@ import (
 	lg "github.com/mundacity/quick-logger"
 )
 
-// Feature in progress... TODO
-// relates to priority queue and how remote storage returns the 'next' item
-type priorityMode string
-
-const (
-	deadline priorityMode = "d"
-	none     priorityMode = "n"
-	low      priorityMode = "l"
-	medium   priorityMode = "m"
-	high     priorityMode = "h"
-)
-
 // AddCommand implements the ICommand interface and lets the user add new items to storage
 type AddCommand struct {
 	appCtx       *app.AppContext

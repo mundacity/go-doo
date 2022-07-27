@@ -17,6 +17,18 @@ type ICommand interface {
 	Run(io.Writer) error
 }
 
+// Feature in progress... TODO
+// relates to priority queue and how remote storage returns the 'next' item
+type priorityMode string
+
+const (
+	deadline priorityMode = "d"
+	none     priorityMode = "n"
+	low      priorityMode = "l"
+	medium   priorityMode = "m"
+	high     priorityMode = "h"
+)
+
 // Flags used throughout the system
 type CMD_FLAG string
 
