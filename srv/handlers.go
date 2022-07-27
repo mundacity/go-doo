@@ -13,26 +13,27 @@ import (
 type Handler struct {
 	Repo         godoo.IRepository
 	PriorityList *godoo.PriorityList
+	priorityMode bool
 }
 
 // Returns a new http handler. If runPl is true, then the handler will
 // maintain a priority queue as well.
 func NewHandler(runPl bool, repo godoo.IRepository) Handler {
 
-	h := Handler{Repo: repo}
-	if runPl {
-		h.setupPriorityList()
-	}
+	h := Handler{Repo: repo, priorityMode: runPl}
+	h.setupPriorityList()
 
 	return h
 }
 
-func (h *Handler) setupPriorityList() { // todo look at go routines for this (maybe just the callers)
-	h.PriorityList = godoo.NewPriorityList()
-	all, _ := h.Repo.GetAll()
+func (h *Handler) setupPriorityList() { // todo: look at go routines for this (maybe just the callers)
+	if h.priorityMode {
+		h.PriorityList = godoo.NewPriorityList()
+		all, _ := h.Repo.GetAll()
 
-	for _, v := range all {
-		h.PriorityList.Add(v)
+		for _, v := range all {
+			h.PriorityList.Add(v)
+		}
 	}
 }
 
@@ -42,7 +43,7 @@ func (h Handler) TestHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
-func (h Handler) HandleRequests(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleRequests(w http.ResponseWriter, r *http.Request) {
 
 	lg.Logger.Logf(lg.Info, "%v request received from %v", r.Method, r.RemoteAddr)
 
@@ -59,7 +60,7 @@ func (h Handler) HandleRequests(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "application/json")
 
@@ -80,9 +81,11 @@ func (h Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.PriorityList.Add(td); err != nil {
-		// db fine but pl out of sync --> reset pl
-		h.setupPriorityList()
+	if h.priorityMode {
+		if err = h.PriorityList.Add(td); err != nil {
+			// db fine but pl out of sync --> reset pl
+			h.setupPriorityList()
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -90,7 +93,7 @@ func (h Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 	lg.Logger.Log(lg.Info, "add handler completed execution")
 }
 
-func (h Handler) GetHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	var itms []godoo.TodoItem
 	var err error
@@ -109,7 +112,7 @@ func (h Handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// handle get by priority mode/date
-	if len(fq.QueryOptions) == 1 {
+	if h.priorityMode && len(fq.QueryOptions) == 1 {
 
 		itm, done, msg, err := h.handleQueueMode(fq)
 		if err != nil {
@@ -158,7 +161,7 @@ func (h *Handler) handleQueueMode(fq godoo.FullUserQuery) (itm godoo.TodoItem, d
 // returned to the queue. Can't fully pop until the user marks
 // the item as complete - i.e. via the edit command rather
 // than the get command
-func (h Handler) runGetNextByPriority(fq godoo.FullUserQuery, rePush bool) (godoo.TodoItem, error) {
+func (h *Handler) runGetNextByPriority(fq godoo.FullUserQuery, rePush bool) (godoo.TodoItem, error) {
 
 	td, err := h.PriorityList.GetNext()
 	if err != nil {
@@ -181,7 +184,7 @@ func (h Handler) runGetNextByPriority(fq godoo.FullUserQuery, rePush bool) (godo
 // returned to the queue. Can't fully pop until the user marks
 // the item as complete - i.e. via the edit command rather
 // than the get command
-func (h Handler) runGetNextByDate(fq godoo.FullUserQuery, rePush bool) (godoo.TodoItem, error) {
+func (h *Handler) runGetNextByDate(fq godoo.FullUserQuery, rePush bool) (godoo.TodoItem, error) {
 
 	h.PriorityList.DateMode = true
 	td, err := h.PriorityList.GetNext()
@@ -203,7 +206,7 @@ func (h Handler) runGetNextByDate(fq godoo.FullUserQuery, rePush bool) (godoo.To
 	return *td, nil
 }
 
-func (h Handler) EditHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) EditHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("content-type", "application/json")
 
@@ -229,6 +232,10 @@ func (h Handler) EditHandler(w http.ResponseWriter, r *http.Request) {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("server error: %v", err), runtime.Caller)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if h.priorityMode {
+		h.setupPriorityList() //probably inefficient but won't have the full items (just bits to update), so better to just start again
 	}
 
 	w.WriteHeader(http.StatusOK)
