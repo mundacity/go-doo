@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"os"
 	"sort"
 	"testing"
 	"time"
@@ -156,8 +155,8 @@ func TestEditQueryBuilding(t *testing.T) {
 
 func _runEditTest(t *testing.T, tc edit_item_generation_test_case) {
 
-	s := []string{"edit", "-i", "51", "-B", "added via http", "--append"}
-	RunCli(s, os.Stdout)
+	//s := []string{"edit", "-i", "51", "-B", "added via http", "--append"}
+	//RunCli(s, os.Stdout)
 
 	app, _ := app.SetupCli(tc.args)
 	eCmd, _ := NewEditCommand(app)

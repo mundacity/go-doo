@@ -26,17 +26,17 @@ type get_query_build_test_case struct {
 func _getTestCasesForGetting() []get_test_case {
 	return []get_test_case{{
 		args:     []string{"-a"},
-		expected: GetCommand{getAll: true, deadlineDate: "."},
+		expected: GetCommand{getAll: true},
 		err:      nil,
 		name:     "get all",
 	}, {
 		args:     []string{"-i", "23"},
-		expected: GetCommand{id: 23, deadlineDate: "."},
+		expected: GetCommand{id: 23},
 		err:      nil,
 		name:     "get by id",
 	}, {
 		args:     []string{"-c", "9"},
-		expected: GetCommand{childOf: 9, deadlineDate: "."},
+		expected: GetCommand{childOf: 9},
 		err:      nil,
 		name:     "get by child id",
 	}, {
