@@ -3,10 +3,8 @@ package cli
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	godoo "github.com/mundacity/go-doo"
-	"github.com/mundacity/go-doo/app"
 )
 
 type get_test_case struct {
@@ -25,22 +23,22 @@ type get_query_build_test_case struct {
 
 func _getTestCasesForGetting() []get_test_case {
 	return []get_test_case{{
-		args:     []string{"-a"},
+		args:     []string{"get", "-a"},
 		expected: GetCommand{getAll: true},
 		err:      nil,
 		name:     "get all",
 	}, {
-		args:     []string{"-i", "23"},
+		args:     []string{"get", "-i", "23"},
 		expected: GetCommand{id: 23},
 		err:      nil,
 		name:     "get by id",
 	}, {
-		args:     []string{"-c", "9"},
+		args:     []string{"get", "-c", "9"},
 		expected: GetCommand{childOf: 9},
 		err:      nil,
 		name:     "get by child id",
 	}, {
-		args:     []string{"-F", "-d", "2022-06-01:2022-06-18"},
+		args:     []string{"get", "-F", "-d", "2022-06-01:2022-06-18"},
 		expected: GetCommand{complete: false, deadlineDate: "2022-06-01:2022-06-18"},
 		err:      nil,
 		name:     "get incomplete with literal deadline range (maxLen be at least 21)",
@@ -98,14 +96,12 @@ func TestGetting(t *testing.T) {
 
 func _runGetTest(t *testing.T, tc get_test_case) {
 
-	app, _ := app.SetupCli(tc.args)
-	gCmd, _ := NewGetCommand(app)
-	nowStr := returnNowString()
-	gCmd.parser.NowMoment, _ = time.Parse(gCmd.appCtx.DateLayout, nowStr)
+	fc := &FakeAppContext{}
+	fc.SetupCliContext(tc.args)
+	cmd := NewGetCommand(&fc.Config)
+	cmd.ParseInput()
 
-	gCmd.ParseInput()
-
-	same, msg := compareResults(tc.expected, *gCmd)
+	same, msg := compareResults(tc.expected, *cmd)
 
 	if same {
 		t.Logf(">>>>PASS: expected and got are equal")
@@ -124,8 +120,8 @@ func TestGetQueryBuilding(t *testing.T) {
 }
 
 func runGetQueryBuildTests(t *testing.T, tc get_query_build_test_case) {
-	gotSrchLst, _ := tc.input.determineQueryType()
-	gotSrchItm, _ := tc.input.interpretUserInput()
+	gotSrchLst, _ := tc.input.DetermineQueryType(godoo.Get)
+	gotSrchItm, _ := tc.input.BuildItemFromInput()
 
 	same, msg := compareTdoItms(tc.expSrchItm, gotSrchItm)
 	if same {

@@ -14,15 +14,12 @@ import (
 	"strings"
 	"time"
 
-	fp "github.com/mundacity/flag-parser"
 	godoo "github.com/mundacity/go-doo"
-	"github.com/mundacity/go-doo/app"
 	lg "github.com/mundacity/quick-logger"
 )
 
 type EditCommand struct {
-	appCtx            *app.AppContext
-	parser            fp.FlagParser
+	conf              *godoo.ConfigVals
 	fs                *flag.FlagSet
 	getNewVals        bool
 	id                int
@@ -43,19 +40,14 @@ type EditCommand struct {
 }
 
 // Sets up flag info & parser before returning a new edit comman
-func NewEditCommand(ctx *app.AppContext) (*EditCommand, error) {
-	eCmd := EditCommand{appCtx: ctx}
+func NewEditCommand(conf *godoo.ConfigVals) *EditCommand {
+	eCmd := EditCommand{}
+	eCmd.conf = conf
 	lg.Logger.Log(lg.Info, "edit command created")
 
 	eCmd.setupFlagSet()
 
-	var err error
-	if err = eCmd.setupFlagMapper(ctx.Args); err != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("flag parser setup error: %v", err), runtime.Caller)
-	}
-
-	lg.Logger.Log(lg.Info, "flag parser successfully setup")
-	return &eCmd, err
+	return &eCmd
 }
 
 // Describes the flags and argument types associated with the command
@@ -64,108 +56,62 @@ func (eCmd *EditCommand) setupFlagSet() {
 	eCmd.fs = flag.NewFlagSet("edit", flag.ContinueOnError)
 
 	// selectors to determine which items to edit
-	eCmd.fs.IntVar(&eCmd.id, strings.Trim(string(itmId), "-"), 0, "edit item by id")
-	eCmd.fs.IntVar(&eCmd.childOf, strings.Trim(string(child), "-"), 0, "edit items by parentId - i.e. child of id passed")
-	eCmd.fs.StringVar(&eCmd.deadline, strings.Trim(string(date), "-"), "", "edit items by deadline")
-	eCmd.fs.StringVar(&eCmd.creationDate, strings.Trim(string(creation), "-"), "", "edit items by creation date")
-	eCmd.fs.StringVar(&eCmd.body, strings.Trim(string(body), "-"), "", "edit items by body keyword")
-	eCmd.fs.StringVar(&eCmd.tagInput, strings.Trim(string(tag), "-"), "", "edit items by tag")
-	eCmd.fs.BoolVar(&eCmd.complete, strings.Trim(string(finished), "-"), false, "edit by completed items")
+	eCmd.fs.IntVar(&eCmd.id, strings.Trim(string(godoo.ItmId), "-"), 0, "edit item by id")
+	eCmd.fs.IntVar(&eCmd.childOf, strings.Trim(string(godoo.Child), "-"), 0, "edit items by parentId - i.e. child of id passed")
+	eCmd.fs.StringVar(&eCmd.deadline, strings.Trim(string(godoo.Date), "-"), "", "edit items by deadline")
+	eCmd.fs.StringVar(&eCmd.creationDate, strings.Trim(string(godoo.Creation), "-"), "", "edit items by creation date")
+	eCmd.fs.StringVar(&eCmd.body, strings.Trim(string(godoo.Body), "-"), "", "edit items by body keyword")
+	eCmd.fs.StringVar(&eCmd.tagInput, strings.Trim(string(godoo.Tag), "-"), "", "edit items by tag")
+	eCmd.fs.BoolVar(&eCmd.complete, strings.Trim(string(godoo.Finished), "-"), false, "edit by completed items")
 
 	// edit mode
-	eCmd.fs.BoolVar(&eCmd.appending, strings.Trim(string(appendMode), "-"), false, "append new input to end of existing body/tag")
-	eCmd.fs.BoolVar(&eCmd.replacing, strings.Trim(string(replaceMode), "-"), false, "replace existing body/tag with new input")
+	eCmd.fs.BoolVar(&eCmd.appending, strings.Trim(string(godoo.AppendMode), "-"), false, "append new input to end of existing body/tag")
+	eCmd.fs.BoolVar(&eCmd.replacing, strings.Trim(string(godoo.ReplaceMode), "-"), false, "replace existing body/tag with new input")
 
 	// elements of item/s to edit
-	eCmd.fs.BoolVar(&eCmd.newToggleComplete, strings.Trim(string(markComplete), "-"), false, "toggle item completion")
-	eCmd.fs.StringVar(&eCmd.newTag, strings.Trim(string(changeTag), "-"), "", "change item/s tag")
-	eCmd.fs.StringVar(&eCmd.newDeadline, strings.Trim(string(changedDeadline), "-"), "", "change item/s deadline")
-	eCmd.fs.StringVar(&eCmd.newBody, strings.Trim(string(changeBody), "-"), "", "change item/s body")
-	eCmd.fs.IntVar(&eCmd.newParent, strings.Trim(string(changeParent), "-"), 0, "change item/s parent id")
-	eCmd.fs.StringVar((*string)(&eCmd.newPriority), strings.Trim(string(changeMode), "-"), "", "change item/s priority mode - low/medium/high")
-}
-
-// Pass canonical flags and user input to flag-parser package
-func (eCmd *EditCommand) setupFlagMapper(userFlags []string) error {
-	canonicalFlags, err := eCmd.getValidFlags()
-	if err != nil {
-		return err
-	}
-
-	eCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(getNowString(), eCmd.appCtx.DateLayout))
-
-	err = eCmd.parser.CheckInitialisation()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Describes valid flag info for flag-parser
-func (eCmd *EditCommand) getValidFlags() ([]fp.FlagInfo, error) {
-	var ret []fp.FlagInfo
-
-	maxIntDigits := eCmd.appCtx.IntDigits
-	lenMax := eCmd.appCtx.MaxLen
-
-	f1 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
-	f2 := fp.FlagInfo{FlagName: string(itmId), FlagType: fp.Integer, MaxLen: maxIntDigits}
-	f3 := fp.FlagInfo{FlagName: string(date), FlagType: fp.DateTime, MaxLen: 21, AllowDateRange: true}
-	f4 := fp.FlagInfo{FlagName: string(tag), FlagType: fp.Str, MaxLen: lenMax}
-	f5 := fp.FlagInfo{FlagName: string(child), FlagType: fp.Integer, MaxLen: maxIntDigits}
-	f6 := fp.FlagInfo{FlagName: string(creation), FlagType: fp.DateTime, MaxLen: 21, AllowDateRange: true}
-	f14 := fp.FlagInfo{FlagName: string(finished), FlagType: fp.Boolean, Standalone: true}
-
-	f7 := fp.FlagInfo{FlagName: string(appendMode), FlagType: fp.Boolean, Standalone: true}
-	f8 := fp.FlagInfo{FlagName: string(replaceMode), FlagType: fp.Boolean, Standalone: true}
-
-	f9 := fp.FlagInfo{FlagName: string(changeBody), FlagType: fp.Str, MaxLen: lenMax}
-	f10 := fp.FlagInfo{FlagName: string(changeTag), FlagType: fp.Str, MaxLen: lenMax}
-	f11 := fp.FlagInfo{FlagName: string(changeParent), FlagType: fp.Integer, MaxLen: maxIntDigits}
-	f12 := fp.FlagInfo{FlagName: string(changedDeadline), FlagType: fp.DateTime, MaxLen: 20}
-	f13 := fp.FlagInfo{FlagName: string(markComplete), FlagType: fp.Boolean, Standalone: true}
-	f15 := fp.FlagInfo{FlagName: string(changeMode), FlagType: fp.Str, MaxLen: 1}
-
-	ret = append(ret, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15)
-	return ret, nil
+	eCmd.fs.BoolVar(&eCmd.newToggleComplete, strings.Trim(string(godoo.MarkComplete), "-"), false, "toggle item completion")
+	eCmd.fs.StringVar(&eCmd.newTag, strings.Trim(string(godoo.ChangeTag), "-"), "", "change item/s tag")
+	eCmd.fs.StringVar(&eCmd.newDeadline, strings.Trim(string(godoo.ChangedDeadline), "-"), "", "change item/s deadline")
+	eCmd.fs.StringVar(&eCmd.newBody, strings.Trim(string(godoo.ChangeBody), "-"), "", "change item/s body")
+	eCmd.fs.IntVar(&eCmd.newParent, strings.Trim(string(godoo.ChangeParent), "-"), 0, "change item/s parent id")
+	eCmd.fs.StringVar((*string)(&eCmd.newPriority), strings.Trim(string(godoo.ChangeMode), "-"), "", "change item/s priority mode - low/medium/high")
 }
 
 // ParseInput implements method from ICommand interface
 func (eCmd *EditCommand) ParseInput() error {
-	newArgs, err := eCmd.parser.ParseUserInput()
+	newArgs, err := eCmd.conf.Parser.ParseUserInput()
 
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("user input parsing error: %v", err), runtime.Caller)
 		return err
 	}
 
-	eCmd.appCtx.Args = newArgs
+	eCmd.conf.Args = newArgs
 	lg.Logger.Log(lg.Info, "successfully parsed user input")
-	return eCmd.fs.Parse(eCmd.appCtx.Args)
+	return eCmd.fs.Parse(eCmd.conf.Args)
 }
 
 // Implements ICommand Run() method
 func (eCmd *EditCommand) Run(w io.Writer) error {
 
 	eCmd.getAdditionalInput()
-	srchQryLst, err := eCmd.determineQueryType(godoo.Get)
+	srchQryLst, err := eCmd.DetermineQueryType(godoo.Get)
 	if err != nil {
 		return err
 	}
-	edtQryLst, err := eCmd.determineQueryType(godoo.Update)
+	edtQryLst, err := eCmd.DetermineQueryType(godoo.Update)
 	if err != nil {
 		return err
 	}
 
-	toEdit, err := eCmd.setupTodoItemBasedOnUserInput()
+	toEdit, err := eCmd.BuildItemFromInput()
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error while interpreting user input: %v", err), runtime.Caller)
 		return err
 	}
 
 	eCmd.getNewVals = true
-	newVals, err := eCmd.setupTodoItemBasedOnUserInput()
+	newVals, err := eCmd.BuildItemFromInput()
 	eCmd.getNewVals = false
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error while interpreting user input: %v", err), runtime.Caller)
@@ -175,11 +121,11 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 	srchFq := godoo.FullUserQuery{QueryOptions: srchQryLst, QueryData: toEdit}
 	edtFq := godoo.FullUserQuery{QueryOptions: edtQryLst, QueryData: newVals}
 
-	if eCmd.appCtx.Instance == app.Remote {
+	if eCmd.conf.Instance == godoo.Remote {
 		return eCmd.remoteEdit(w, srchFq, edtFq)
 	}
 
-	num, err := eCmd.appCtx.TodoRepo.UpdateWhere(srchFq, edtFq)
+	num, err := eCmd.conf.TodoRepo.UpdateWhere(srchFq, edtFq)
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("failed to edit item: %v", err), runtime.Caller)
 		return err
@@ -222,7 +168,7 @@ func (eCmd *EditCommand) getAdditionalInput() error {
 
 // Populates a godoo.TodoItem with user-supplied data to pass
 // to database for querying/editing
-func (eCmd *EditCommand) setupTodoItemBasedOnUserInput() (godoo.TodoItem, error) {
+func (eCmd *EditCommand) BuildItemFromInput() (godoo.TodoItem, error) {
 	ret := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 
 	if !eCmd.getNewVals { // searching
@@ -233,11 +179,11 @@ func (eCmd *EditCommand) setupTodoItemBasedOnUserInput() (godoo.TodoItem, error)
 		}
 		if eCmd.creationDate != "" {
 			splt := strings.Split(eCmd.creationDate, ":")
-			ret.CreationDate, _ = time.Parse(eCmd.appCtx.DateLayout, splt[0]) //whether range or not, only ever going to need first one
+			ret.CreationDate, _ = time.Parse(eCmd.conf.DateLayout, splt[0]) //whether range or not, only ever going to need first one
 		}
 		if eCmd.deadline != "" {
 			splt := strings.Split(eCmd.deadline, ":")
-			ret.Deadline, _ = time.Parse(eCmd.appCtx.DateLayout, splt[0])
+			ret.Deadline, _ = time.Parse(eCmd.conf.DateLayout, splt[0])
 		}
 		if eCmd.body != "" {
 			ret.Body = eCmd.body
@@ -254,7 +200,7 @@ func (eCmd *EditCommand) setupTodoItemBasedOnUserInput() (godoo.TodoItem, error)
 			ret.IsChild = true
 		}
 		if eCmd.newDeadline != "" {
-			ret.Deadline, _ = time.Parse(eCmd.appCtx.DateLayout, eCmd.newDeadline)
+			ret.Deadline, _ = time.Parse(eCmd.conf.DateLayout, eCmd.newDeadline)
 		}
 		if eCmd.newBody != "" {
 			if eCmd.appending {
@@ -299,7 +245,7 @@ func convertPriority(s string) (godoo.PriorityLevel, error) {
 // In remote mode, coordinates request & response to/from remote server.
 func (eCmd *EditCommand) remoteEdit(w io.Writer, srchFq, edtFq godoo.FullUserQuery) error {
 	// --> very happy path; need to test
-	baseUrl := eCmd.appCtx.RemoteUrl + "/edit"
+	baseUrl := eCmd.conf.RemoteUrl + "/edit"
 
 	s := []godoo.FullUserQuery{srchFq, edtFq}
 
@@ -316,7 +262,7 @@ func (eCmd *EditCommand) remoteEdit(w io.Writer, srchFq, edtFq godoo.FullUserQue
 	}
 	rq.Header.Set("content-type", "application/json")
 
-	resp, err := eCmd.appCtx.Client.Do(rq)
+	resp, err := eCmd.conf.Client.Do(rq)
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err
@@ -339,7 +285,7 @@ func (eCmd *EditCommand) remoteEdit(w io.Writer, srchFq, edtFq godoo.FullUserQue
 
 // Interprets user input to determine intentions in both the search and edit
 // portions of input. If no edit options provided, returns error.
-func (eCmd *EditCommand) determineQueryType(qType godoo.QueryType) ([]godoo.UserQueryOption, error) {
+func (eCmd *EditCommand) DetermineQueryType(qType godoo.QueryType) ([]godoo.UserQueryOption, error) {
 	var ret []godoo.UserQueryOption
 
 	switch qType {
@@ -362,11 +308,11 @@ func (eCmd *EditCommand) determineQueryType(qType godoo.QueryType) ([]godoo.User
 
 		// by times
 		if eCmd.deadline != "" {
-			d := getUpperDateBound(eCmd.deadline, eCmd.appCtx.DateLayout)
+			d := getUpperDateBound(eCmd.deadline, eCmd.conf.DateLayout)
 			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByDeadline, UpperBoundDate: d})
 		}
 		if eCmd.creationDate != "" {
-			d := getUpperDateBound(eCmd.creationDate, eCmd.appCtx.DateLayout)
+			d := getUpperDateBound(eCmd.creationDate, eCmd.conf.DateLayout)
 			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCreationDate, UpperBoundDate: d})
 		}
 		if eCmd.complete {

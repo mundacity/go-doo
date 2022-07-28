@@ -1,20 +1,53 @@
 package app
 
 import (
+	"fmt"
+	"io"
+
 	godoo "github.com/mundacity/go-doo"
+	"github.com/mundacity/go-doo/cli"
 	"github.com/mundacity/go-doo/sqlite"
 	lg "github.com/mundacity/quick-logger"
 	"github.com/spf13/viper"
 )
 
-// Sets up and returns the operating context of the cli client application
+func RunCliApp(args []string, w io.Writer) int {
+
+	err := SetupCli(args)
+	if err != nil {
+		fmt.Printf("error: '%v'", err)
+		return 2
+	}
+
+	cmd, err := cli.CliContext.GetCommand()
+	if err != nil {
+		fmt.Printf("error: '%v'", err)
+		return 2
+	}
+
+	err = cmd.ParseInput()
+	if err != nil {
+		fmt.Printf("error: '%v'", err)
+		return 2
+	}
+
+	err = cmd.Run(w)
+	if err != nil {
+		fmt.Printf("error: '%v'", err)
+		return 2
+	}
+
+	return 0
+}
+
+// Sets up the operating context of the cli client application
 // based on user configuration options. Also starts the logger.
-func SetupCli(osArgs []string) (*AppContext, error) {
+func SetupCli(osArgs []string) error {
 
-	app := AppContext{Args: osArgs}
-	app.setCliContext()
+	cli.CliContext = &AppContext{}
+	cli.CliContext.SetupCliContext(osArgs)
 
-	return &app, nil
+	return nil
 }
 
 // Sets up server context & logger in a similar way to SetupCli()
@@ -47,7 +80,7 @@ func SetConfigVals() {
 	viper.SetConfigName("env")
 	viper.SetConfigType("env")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("")
+	viper.AddConfigPath("C://fe")
 	viper.ReadInConfig()
 }
 

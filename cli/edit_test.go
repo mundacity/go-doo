@@ -7,7 +7,6 @@ import (
 	"time"
 
 	godoo "github.com/mundacity/go-doo"
-	"github.com/mundacity/go-doo/app"
 	"github.com/mundacity/go-doo/util"
 )
 
@@ -30,32 +29,32 @@ type edit_query_build_test_case struct {
 
 func _getTestCasesForEditing() []edit_item_generation_test_case {
 	return []edit_item_generation_test_case{{
-		args:     []string{"-i", "18", "-D", "1d"},
+		args:     []string{"edit", "-i", "18", "-D", "2022-03-15"},
 		expected: EditCommand{id: 18, newDeadline: "2022-03-15"},
 		err:      nil,
 		name:     "find by id toggle completion",
 	}, {
-		args:     []string{"-i", "3", "-F"},
+		args:     []string{"edit", "-i", "3", "-F"},
 		expected: EditCommand{id: 3, newToggleComplete: true},
 		err:      nil,
 		name:     "find by id toggle completion",
 	}, {
-		args:     []string{"-i", "4", "-B", "seems to be working"},
+		args:     []string{"edit", "-i", "4", "-B", "seems to be working"},
 		expected: EditCommand{id: 4, newBody: "seems to be working"},
 		err:      nil,
 		name:     "find by id changed body no append/replace directive",
 	}, {
-		args:     []string{"-b", "edit", "command", "-F"},
+		args:     []string{"edit", "-b", "edit command", "-F"},
 		expected: EditCommand{body: "edit command", newToggleComplete: true},
 		err:      nil,
 		name:     "find by body key phrase mark complete",
 	}, {
-		args:     []string{"-i", "15", "--replace", "-B", "cleaned", "out", "by", "edit", "command"},
+		args:     []string{"edit", "-i", "15", "--replace", "-B", "cleaned out by edit command"},
 		expected: EditCommand{id: 15, newBody: "cleaned out by edit command", replacing: true},
 		err:      nil,
 		name:     "find by id edit body with replace directive",
 	}, {
-		args:     []string{"-b", "multiple", "-B", "appended", "to", "end", "of", "body", "by", "edit", "command", "--append"},
+		args:     []string{"edit", "-b", "multiple", "-B", "appended to end of body by edit command", "--append"},
 		expected: EditCommand{body: "multiple", newBody: "appended to end of body by edit command", appending: true},
 		err:      nil,
 		name:     "find by body edit body with append directive",
@@ -155,16 +154,12 @@ func TestEditQueryBuilding(t *testing.T) {
 
 func _runEditTest(t *testing.T, tc edit_item_generation_test_case) {
 
-	//s := []string{"edit", "-i", "51", "-B", "added via http", "--append"}
-	//RunCli(s, os.Stdout)
+	fc := &FakeAppContext{}
+	fc.SetupCliContext(tc.args)
+	cmd := NewEditCommand(&fc.Config)
+	cmd.ParseInput()
 
-	app, _ := app.SetupCli(tc.args)
-	eCmd, _ := NewEditCommand(app)
-	nowStr := returnNowString()
-	eCmd.parser.NowMoment, _ = time.Parse(eCmd.appCtx.DateLayout, nowStr)
-	eCmd.ParseInput()
-
-	same1, msg1 := compare(tc.expected, *eCmd)
+	same1, msg1 := compare(tc.expected, *cmd)
 
 	if same1 {
 		t.Logf(">>>>PASS (finding): expected and got are equal")
@@ -174,12 +169,12 @@ func _runEditTest(t *testing.T, tc edit_item_generation_test_case) {
 }
 
 func runQueryBuildTests(t *testing.T, tc edit_query_build_test_case) {
-	gotSrchLst, _ := tc.input.determineQueryType(godoo.Get)
-	gotEdtList, _ := tc.input.determineQueryType(godoo.Update)
+	gotSrchLst, _ := tc.input.DetermineQueryType(godoo.Get)
+	gotEdtList, _ := tc.input.DetermineQueryType(godoo.Update)
 
-	gotSrchItm, _ := tc.input.setupTodoItemBasedOnUserInput()
+	gotSrchItm, _ := tc.input.BuildItemFromInput()
 	tc.input.getNewVals = true
-	gotEdtItm, _ := tc.input.setupTodoItemBasedOnUserInput()
+	gotEdtItm, _ := tc.input.BuildItemFromInput()
 
 	same, msg := compareTdoItms(tc.expSrchItm, gotSrchItm)
 	if same {

@@ -7,8 +7,6 @@ import (
 	"time"
 
 	godoo "github.com/mundacity/go-doo"
-	"github.com/mundacity/go-doo/app"
-	"github.com/mundacity/go-doo/util"
 )
 
 type add_test_case struct {
@@ -21,49 +19,49 @@ type add_test_case struct {
 
 func _getTestCases() []add_test_case {
 	return []add_test_case{{
-		args:     []string{"-b", "this", "is", "a", "body", "-", "with", "a", "dash"},
+		args:     []string{"add", "-b", "this is a body - with a dash"},
 		expected: godoo.TodoItem{Body: "this is a body - with a dash", CreationDate: time.Now(), Priority: godoo.None},
 		err:      nil,
 		name:     "body only",
 		envVal:   0,
 	}, {
-		args:     []string{"-t", "tag", "w", "spc", "-c", "9", "-b", "body", "with", "spaces", "-m", "h"},
+		args:     []string{"add", "-t", "tag w spc", "-c", "9", "-b", "body with spaces", "-m", "h"},
 		expected: godoo.TodoItem{Body: "body with spaces", ParentId: 9, Priority: godoo.High, Tags: _getTagMap("tag w spc", "*")},
 		err:      nil,
 		name:     "multiple flags & args",
 		envVal:   0,
 	}, {
-		args:     []string{"-c", "7", "body", "with no body flag", "and spaces", "-m", "l"},
+		args:     []string{"add", "-c", "7", "-b", "body with no body flag and spaces", "-m", "l"},
 		expected: godoo.TodoItem{Body: "body with no body flag and spaces", ParentId: 7, Priority: godoo.Low},
 		err:      nil,
 		name:     "no body tag",
 		envVal:   0,
 	}, {
-		args:     []string{"this is a spaceful body", "-d", "-1y", "1m", "2d"},
+		args:     []string{"add", "-b", "this is a spaceful body", "-d", "2021-04-16"},
 		expected: godoo.TodoItem{Body: "this is a spaceful body", Priority: godoo.DateBased, Deadline: time.Date(2021, 04, 16, 0, 0, 0, 0, time.UTC)},
 		err:      nil,
 		name:     "deadline test",
 		envVal:   0,
 	}, {
-		args:     []string{"I'm", "including", "an apostrophe", "-d", "-1y", "1m", "2d"},
+		args:     []string{"add", "-b", "I'm including an apostrophe", "-d", "2021-04-16"},
 		expected: godoo.TodoItem{Body: "I'm including an apostrophe", Priority: godoo.DateBased, Deadline: time.Date(2021, 04, 16, 0, 0, 0, 0, time.UTC)},
 		err:      nil,
 		name:     "apostrophe test",
 		envVal:   0,
 	}, {
-		args:     []string{"flagless", "body", "with", "spaces", "-t", "tag1*tag2*tag3"},
+		args:     []string{"add", "-b", "flagless body with spaces", "-t", "tag1*tag2*tag3"},
 		expected: godoo.TodoItem{Body: "flagless body with spaces", Priority: godoo.None, Tags: _getTagMap("tag1*tag2*tag3", "*")},
 		err:      nil,
 		name:     "apostrophe test",
 		envVal:   0,
 	}, {
-		args:     []string{"flagless", "body", "with", "spaces", "-t", "tag1*tag2*tag3", "-m", "h"},
+		args:     []string{"add", "-b", "flagless body with spaces", "-t", "tag1*tag2*tag3", "-m", "h"},
 		expected: godoo.TodoItem{Body: "flagless body with spaces", Priority: godoo.High, Tags: _getTagMap("tag1*tag2*tag3", "*")},
 		err:      nil,
 		name:     "high priority item",
 		envVal:   0,
 	}, {
-		args:     []string{"new item body", "-m", "z"},
+		args:     []string{"add", "-b", "new item body", "-m", "z"},
 		expected: godoo.TodoItem{Body: "new item body", Priority: godoo.None},
 		err:      &InvalidArgumentError{},
 		name:     "invalid priority arg",
@@ -95,13 +93,12 @@ func _runAddTest(t *testing.T, tc add_test_case) {
 
 	//_quickTest(tc)
 
-	app, _ := app.SetupCli(tc.args)
-	addCmd, _ := NewAddCommand(app)
-	nowStr := returnNowString()
-	addCmd.parser.NowMoment, _ = time.Parse(addCmd.appCtx.DateLayout, nowStr)
+	CliContext = &FakeAppContext{}
+	CliContext.SetupCliContext(tc.args)
+	cmd, _ := CliContext.GetCommand()
 
-	addCmd.ParseInput()
-	td, err := addCmd.setUpItemFromUserInput()
+	cmd.ParseInput()
+	td, err := cmd.BuildItemFromInput()
 
 	if err != nil {
 		if tc.err == err {
@@ -155,7 +152,7 @@ func compareTestResults(expected, got godoo.TodoItem) (bool, string) {
 	return true, ""
 }
 
-func returnNowString() string {
-	n := time.Date(2022, 03, 14, 0, 0, 0, 0, time.UTC)
-	return util.StringFromDate(n)
-}
+// func returnNowString() string {
+// 	n := time.Date(2022, 03, 14, 0, 0, 0, 0, time.UTC)
+// 	return util.StringFromDate(n)
+// }

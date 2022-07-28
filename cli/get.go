@@ -11,16 +11,12 @@ import (
 	"strings"
 	"time"
 
-	fp "github.com/mundacity/flag-parser"
 	godoo "github.com/mundacity/go-doo"
-
-	"github.com/mundacity/go-doo/app"
 	lg "github.com/mundacity/quick-logger"
 )
 
 type GetCommand struct {
-	appCtx         *app.AppContext
-	parser         fp.FlagParser
+	conf           *godoo.ConfigVals
 	fs             *flag.FlagSet
 	id             int
 	next           bool   // default to priority, but can be changed by nextByDate flag
@@ -37,116 +33,69 @@ type GetCommand struct {
 }
 
 // Returns new get command after setting up flag info and flag-parser
-func NewGetCommand(ctx *app.AppContext) (*GetCommand, error) {
-	getCmd := GetCommand{appCtx: ctx}
+func NewGetCommand(c *godoo.ConfigVals) *GetCommand {
+	gCmd := GetCommand{}
+	gCmd.conf = c
 	lg.Logger.Log(lg.Info, "get command created")
 
-	getCmd.setupFlagSet()
+	gCmd.setupFlagSet()
 
-	var err error
-	if err = getCmd.setupFlagMapper(ctx.Args); err != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("flag parser setup error: %v", err), runtime.Caller)
-	}
-
-	lg.Logger.Log(lg.Info, "flag parser successfully setup")
-	return &getCmd, err
+	return &gCmd
 }
 
 // Describes the flags and argument types associated with the command
 func (getCmd *GetCommand) setupFlagSet() {
 	getCmd.fs = flag.NewFlagSet("get", flag.ContinueOnError)
-	getCmd.fs.IntVar(&getCmd.id, strings.Trim(string(itmId), "-"), 0, "search by item id")
-	getCmd.fs.BoolVar(&getCmd.next, strings.Trim(string(next), "-"), false, "get next item in priority list")
-	getCmd.fs.BoolVar(&getCmd.nextByDate, strings.Trim(string(dateMode), "-"), false, "get next item by date priority")
-	getCmd.fs.StringVar(&getCmd.deadlineDate, strings.Trim(string(date), "-"), "", "date of existing item; if empty, modifies -n to return based on date instead of defaulting to priority")
-	getCmd.fs.StringVar(&getCmd.creationDate, strings.Trim(string(creation), "-"), "", "creation date of existing item")
-	getCmd.fs.StringVar(&getCmd.tagInput, strings.Trim(string(tag), "-"), "", "search by item tag")
-	getCmd.fs.StringVar(&getCmd.bodyPhrase, strings.Trim(string(body), "-"), "", "search by known phrase within body")
+	getCmd.fs.IntVar(&getCmd.id, strings.Trim(string(godoo.ItmId), "-"), 0, "search by item id")
+	getCmd.fs.BoolVar(&getCmd.next, strings.Trim(string(godoo.Next), "-"), false, "get next item in priority list")
+	getCmd.fs.BoolVar(&getCmd.nextByDate, strings.Trim(string(godoo.DateMode), "-"), false, "get next item by date priority")
+	getCmd.fs.StringVar(&getCmd.deadlineDate, strings.Trim(string(godoo.Date), "-"), "", "date of existing item; if empty, modifies -n to return based on date instead of defaulting to priority")
+	getCmd.fs.StringVar(&getCmd.creationDate, strings.Trim(string(godoo.Creation), "-"), "", "creation date of existing item")
+	getCmd.fs.StringVar(&getCmd.tagInput, strings.Trim(string(godoo.Tag), "-"), "", "search by item tag")
+	getCmd.fs.StringVar(&getCmd.bodyPhrase, strings.Trim(string(godoo.Body), "-"), "", "search by known phrase within body")
 
-	getCmd.fs.IntVar(&getCmd.childOf, strings.Trim(string(child), "-"), 0, "search based on parent Id; requested item is child of provided parent id")
-	getCmd.fs.IntVar(&getCmd.parentOf, strings.Trim(string(parent), "-"), 0, "search based on child Id; requested item is parent of provided child id")
-	getCmd.fs.BoolVar(&getCmd.getAll, strings.Trim(string(all), "-"), false, "get all items")
-	getCmd.fs.BoolVar(&getCmd.complete, strings.Trim(string(finished), "-"), false, "search for completed items")
-	getCmd.fs.BoolVar(&getCmd.toggleComplete, strings.Trim(string(markComplete), "-"), false, "search for unfinished items")
+	getCmd.fs.IntVar(&getCmd.childOf, strings.Trim(string(godoo.Child), "-"), 0, "search based on parent Id; requested item is child of provided parent id")
+	getCmd.fs.IntVar(&getCmd.parentOf, strings.Trim(string(godoo.Parent), "-"), 0, "search based on child Id; requested item is parent of provided child id")
+	getCmd.fs.BoolVar(&getCmd.getAll, strings.Trim(string(godoo.All), "-"), false, "get all items")
+	getCmd.fs.BoolVar(&getCmd.complete, strings.Trim(string(godoo.Finished), "-"), false, "search for completed items")
+	getCmd.fs.BoolVar(&getCmd.toggleComplete, strings.Trim(string(godoo.MarkComplete), "-"), false, "search for unfinished items")
 
-}
-
-// Pass canonical flags and user input to flag-parser package
-func (getCmd *GetCommand) setupFlagMapper(userFlags []string) error {
-	canonicalFlags, err := getCmd.getValidFlags()
-	if err != nil {
-		return err
-	}
-
-	getCmd.parser = *fp.NewFlagParser(canonicalFlags, userFlags, fp.WithNowAs(getNowString(), getCmd.appCtx.DateLayout))
-
-	err = getCmd.parser.CheckInitialisation()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Describes valid flag info for flag-parser
-func (getCmd *GetCommand) getValidFlags() ([]fp.FlagInfo, error) {
-	var ret []fp.FlagInfo
-
-	maxIntDigits := getCmd.appCtx.IntDigits
-
-	lenMax := getCmd.appCtx.MaxLen
-
-	f8 := fp.FlagInfo{FlagName: string(body), FlagType: fp.Str, MaxLen: lenMax}
-	f2 := fp.FlagInfo{FlagName: string(itmId), FlagType: fp.Integer, MaxLen: maxIntDigits}
-	f3 := fp.FlagInfo{FlagName: string(next), FlagType: fp.Boolean, Standalone: true}
-	f13 := fp.FlagInfo{FlagName: string(dateMode), FlagType: fp.Boolean, Standalone: true}
-	f4 := fp.FlagInfo{FlagName: string(date), FlagType: fp.DateTime, MaxLen: 21, AllowDateRange: true}
-	f5 := fp.FlagInfo{FlagName: string(tag), FlagType: fp.Str, MaxLen: lenMax}
-	f6 := fp.FlagInfo{FlagName: string(child), FlagType: fp.Integer, MaxLen: maxIntDigits}
-	f7 := fp.FlagInfo{FlagName: string(parent), FlagType: fp.Integer, MaxLen: maxIntDigits}
-	f9 := fp.FlagInfo{FlagName: string(creation), FlagType: fp.DateTime, MaxLen: 21, AllowDateRange: true}
-	f10 := fp.FlagInfo{FlagName: string(all), FlagType: fp.Boolean, Standalone: true}
-	f11 := fp.FlagInfo{FlagName: string(finished), FlagType: fp.Boolean, Standalone: true}
-	f12 := fp.FlagInfo{FlagName: string(markComplete), FlagType: fp.Boolean, Standalone: true}
-
-	ret = append(ret, f8, f2, f3, f4, f5, f6, f7, f9, f10, f11, f12, f13)
-	return ret, nil
 }
 
 // ParseInput implements method from ICommand interface
-func (getCmd *GetCommand) ParseInput() error {
-	newArgs, err := getCmd.parser.ParseUserInput()
+func (g *GetCommand) ParseInput() error {
+	newArgs, err := g.conf.Parser.ParseUserInput()
 
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("user input parsing error: %v", err), runtime.Caller)
 		return err
 	}
 
-	getCmd.appCtx.Args = newArgs
+	g.conf.Args = newArgs
 	lg.Logger.Log(lg.Info, "successfully parsed user input")
-	return getCmd.fs.Parse(getCmd.appCtx.Args)
+	return g.fs.Parse(g.conf.Args)
 }
 
 // Implements Run() method from ICommand interface
 func (gCmd *GetCommand) Run(w io.Writer) error {
 
-	input, _ := gCmd.interpretUserInput()
+	input, _ := gCmd.BuildItemFromInput()
 
 	var itms []godoo.TodoItem
 	var err error
 
-	qList, err := gCmd.determineQueryType()
+	qList, err := gCmd.DetermineQueryType(godoo.Get)
 	if err != nil {
 		return err
 	}
 
 	fullQry := godoo.FullUserQuery{QueryOptions: qList, QueryData: input}
 
-	if gCmd.appCtx.Instance == app.Remote {
+	if gCmd.conf.Instance == godoo.Remote {
 		return gCmd.remoteGet(w, fullQry)
 	}
 
-	itms, err = gCmd.appCtx.TodoRepo.GetWhere(fullQry)
+	itms, err = gCmd.conf.TodoRepo.GetWhere(fullQry)
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("failed to get item: %v", err), runtime.Caller)
 		return err
@@ -160,7 +109,7 @@ func (gCmd *GetCommand) Run(w io.Writer) error {
 }
 
 // Populates a godoo.TodoItem with user-supplied data to query database
-func (gCmd *GetCommand) interpretUserInput() (godoo.TodoItem, error) {
+func (gCmd *GetCommand) BuildItemFromInput() (godoo.TodoItem, error) {
 	ret := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
 
 	ret.Id = gCmd.id
@@ -175,11 +124,11 @@ func (gCmd *GetCommand) interpretUserInput() (godoo.TodoItem, error) {
 
 	if gCmd.creationDate != "" {
 		splt := strings.Split(gCmd.creationDate, ":")
-		ret.CreationDate, _ = time.Parse(gCmd.appCtx.DateLayout, splt[0]) //only ever need first one
+		ret.CreationDate, _ = time.Parse(gCmd.conf.DateLayout, splt[0]) //only ever need first one
 	}
 	if len(gCmd.deadlineDate) > 0 {
 		splt := strings.Split(gCmd.deadlineDate, ":")
-		ret.Deadline, _ = time.Parse(gCmd.appCtx.DateLayout, splt[0])
+		ret.Deadline, _ = time.Parse(gCmd.conf.DateLayout, splt[0])
 	}
 	if gCmd.bodyPhrase != "" {
 		ret.Body = gCmd.bodyPhrase
@@ -196,7 +145,7 @@ func (gCmd *GetCommand) interpretUserInput() (godoo.TodoItem, error) {
 }
 
 // Determines the different elements by which the user is searching for an item
-func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQueryOption, error) {
+func (gCmd *GetCommand) DetermineQueryType(qType godoo.QueryType) ([]godoo.UserQueryOption, error) {
 	var ret []godoo.UserQueryOption
 
 	if gCmd.next { //todo: add flag for getting by date priority
@@ -227,12 +176,12 @@ func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQueryOption, error) {
 
 	// by times
 	if len(gCmd.deadlineDate) > 0 {
-		d := getUpperDateBound(gCmd.deadlineDate, gCmd.appCtx.DateLayout)
+		d := getUpperDateBound(gCmd.deadlineDate, gCmd.conf.DateLayout)
 		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByDeadline, UpperBoundDate: d})
 
 	}
 	if gCmd.creationDate != "" {
-		d := getUpperDateBound(gCmd.creationDate, gCmd.appCtx.DateLayout)
+		d := getUpperDateBound(gCmd.creationDate, gCmd.conf.DateLayout)
 		ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByCreationDate, UpperBoundDate: d})
 	}
 	if gCmd.complete || gCmd.toggleComplete {
@@ -247,7 +196,7 @@ func (gCmd *GetCommand) determineQueryType() ([]godoo.UserQueryOption, error) {
 func (gCmd *GetCommand) remoteGet(w io.Writer, fq godoo.FullUserQuery) error {
 
 	// --> very happy path; need to test
-	baseUrl := gCmd.appCtx.RemoteUrl + "/get"
+	baseUrl := gCmd.conf.RemoteUrl + "/get"
 
 	// building request
 	body, err := json.Marshal(fq)
@@ -264,7 +213,7 @@ func (gCmd *GetCommand) remoteGet(w io.Writer, fq godoo.FullUserQuery) error {
 	rq.Header.Set("content-type", "application/json")
 
 	// getting response
-	resp, err := gCmd.appCtx.Client.Do(rq)
+	resp, err := gCmd.conf.Client.Do(rq)
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err

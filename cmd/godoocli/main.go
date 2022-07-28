@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/mundacity/go-doo/cli"
+	"github.com/mundacity/go-doo/app"
 )
 
 func main() {
-	os.Exit(cli.RunCli(os.Args[1:], os.Stdout)) // first arg is app name
+	os.Exit(app.RunCliApp(os.Args[1:], os.Stdout)) // first arg is app name
 }
