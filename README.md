@@ -3,15 +3,17 @@
 
 ## Description 
 
-Go-doo is a command line notes/todo manager that lets you create, read & edit your notes or todo items - deletions coming soon. It supports both local and remote storage. Local is the default, and the remote option is determined by a config file. It uses SQLite for the database, but could support others easily enough. 
+Go-doo is a command line notes/todo manager that lets you create, read & edit your notes or todo items - deletions coming soon. It supports both local and remote storage. Local is the default, and the remote option is determined by a config file. It uses SQLite for storage. 
 
 The remote storage option is only intended for use on the same LAN, rather than over the internet, to allow multiple machines/people to share share the same database for notes/todo items.
 
-It uses a forgiving input parser so can handle spaces, meaning you're not required to use quotation marks like you are in commit messages, for example. So `godoo add -b input with spaces` would create an item with a body of `"input with spaces"`.
+## Notable features
 
-It also uses a shorthand date format, where e.g. `1y1m8d` is interpreted as 1 year, 1 month and 8 days from now. You can use full date strings like `2022-06-01` if you prefer. The date shorthand also supports negative numbers, so searching for an item with a deadline of `-8m` means the deadline was 8 months ago. 
+Go-doo is intended for quick note-taking in the terminal so it uses a forgiving input parser. It can handle spaces in input, so you're not required to use quotation marks like you are in commit messages, for example. So `godoo add -b input with spaces` would create an item with a body of `"input with spaces"`. You can also leave out some flags in different contexts, so the above example could be shortened to `godoo add input with spaces` and it would still be valid input. 
 
-You can also work with date ranges using the same shorthand. E.g. `godoo get -d -7d:7d` would return items with a deadline within a 14 day range, from 7 days before to 7 days from now. 
+It also uses a shorthand date format, where e.g. `1y1m8d` is interpreted as 1 year, 1 month and 8 days from now. Full date strings like `2022-06-01` are also supported. The date shorthand also allows negative numbers, so searching for an item with a deadline of `-8m` means the deadline was 8 months ago. You can work with date ranges using the same shorthand. E.g. `godoo get -d -7d:7d` would return items with a deadline within a 14 day range, from 7 days before to 7 days from now. 
+
+In remote mode, there is also the option to run a priority queue based on the priority rating of items in the database. When creating or editing items, you can set their priority - none (n), low (l), medium (m), or high (h). You can then use `godoo get -n` to retrieve the item with the highest priority. 
 
 # Usage
 
@@ -23,6 +25,7 @@ To create items, you use the `add` command with any combination of the following
 |-b | body | sets the body/content of the item you're creating | `add -b this is the body of the item` | `-b` can be omitted here and often elsewhere
 |-c | childOf | the item will be the child of the item whose id is passed as the argument | `add -c 8` |
 |-d | deadline | sets a deadline for the created item | `add -d 1 m 3 d` | same as `add -d 1m3d` |
+|-m | mode | sets the priority rating of the new item | `add important note -m h`| support values are: n, l, m, h (none, low, medium, high)
 |-t | tag | adds tag to created item | `add -t work` | item given 'work' tag | 
 
 ### Notes
@@ -61,12 +64,15 @@ To search for items that you have already created you use the `get` command, whi
 | -a | all | get all items | `godoo get -a` | get every item |
 | -f | finished | search by items marked as complete | `godoo get -f`| get all finished items |
 | -F | unfinished | search by items marked as incomplete | `godoo get -F` | get all unfinished items|
+| -n | next | get the next item with the highest priority | `godoo get -n` | the priority queue only contains unfinished items
 
 ### Notes
 
-Whenever a new item is successfully created, the prompt outputs `Creation successful, ItemId: 3`. The number 3 here is just an example, the actual idNumber will obviously change each time. It's this id number that you can search for using the `-i` flag. 
+Whenever a new item is successfully created, the prompt outputs the id number of the created item. It's this id number that you can search for using the `-i` flag. 
 
-You can use the flags listed in the above table in various combinations to build up very specific search criteria. The body flag can often be inferred in the same way described above, so it can be omitted in certain contexts.
+You can use most of the flags listed in the above table in various combinations to build up very specific search criteria. The body flag can often be inferred in the same way described above, so it can be omitted in certain contexts. 
+
+The `-a` and `-n` flags can only be used in isolation - i.e. not as part of a larger query. If you do include them as part of a larger query/command, then the other flags & arguments will be ignored. 
 
 ### Examples
 
@@ -101,6 +107,7 @@ This distinction enables you to use a single command to simultaneously search fo
 | -C | edit | changeParent | change item's parent idNumber ||
 | -D | edit | changeDeadline | change item's deadline | no date ranges |
 | -F | edit | toggleComplete | toggle item's completion status | if complete, change to incomplete; if incomplete, change to complete|
+| -M | edit | changeMode | change the item's/items' priority | as above, supported values are n/l/m/h
 | --append | behaviour | append | add new data to existing field | only relevant for string fields like item's body |
 | --replace | behaviour | replace | replace existing data with new data |only relevant for string fields like item's body| 
 
@@ -142,8 +149,4 @@ Not yet supported but will be.
   - example config/env file in go-doo/example-env
 - Support deletions 
   - need to decide if it should be by id only, or to allow the same search functionality as in the `get` and `edit` commands but maybe with user confirmation
-- add tests for http requests & responses
-  - http support recently added but required more restructuring than expected so tests lacking atm
-- add priority & simple queue functionality for remote storage option
-  - sketched out already, e.g. in `go-doo/todo_priority_list.go
 

@@ -237,6 +237,8 @@ func convertPriority(s string) (godoo.PriorityLevel, error) {
 		return godoo.Medium, nil
 	case "h":
 		return godoo.High, nil
+	case "n":
+		return godoo.None, nil
 	default:
 		return godoo.None, &InvalidArgumentError{}
 	}
