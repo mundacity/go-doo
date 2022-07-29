@@ -3,7 +3,9 @@ package app
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
+	"runtime"
 	"time"
 
 	fp "github.com/mundacity/flag-parser"
@@ -14,14 +16,13 @@ import (
 	"github.com/spf13/viper"
 )
 
-// AppContext encapsulates user inputs and is
-// passed around to execute desired operations
-type AppContext struct {
+// CliContext encapsulates user inputs and is passed around to execute desired operations
+type CliContext struct {
 	Config  godoo.ConfigVals
 	cmdName string
 }
 
-func (ac *AppContext) SetupCliContext(args []string) {
+func (ac *CliContext) SetupCliContext(args []string) {
 
 	ac.Config = godoo.ConfigVals{}
 	ac.cmdName = args[0]
@@ -36,6 +37,8 @@ func (ac *AppContext) SetupCliContext(args []string) {
 	ac.Config.NowString = util.StringFromDate(time.Now())
 
 	startLogger("cli application started...")
+	ac.SetupFlagParser()
+
 	tolog := []any{ac.Config.MaxLen, ac.Config.IntDigits, ac.Config.TagDelim, ac.Config.Instance, ac.Config.DateLayout}
 	s := "[MaxLen: %v, IntDigits: %v, TagDelim: %v, InstanceType: %v, DateLayout: %v]"
 
@@ -58,7 +61,7 @@ func (ac *AppContext) SetupCliContext(args []string) {
 	lg.Logger.Logf(lg.Info, s, tolog...)
 }
 
-func (ac *AppContext) GetCommand() (godoo.ICommand, error) {
+func (ac *CliContext) GetCommand() (godoo.ICommand, error) {
 
 	var cmd godoo.ICommand
 	var err error
@@ -76,12 +79,21 @@ func (ac *AppContext) GetCommand() (godoo.ICommand, error) {
 	return cmd, err
 }
 
-func (ac *AppContext) SetupFlagParser() {
+func (ac *CliContext) SetupFlagParser() {
 	canonicalFlags := ac.getValidFlags()
-	ac.Config.Parser = fp.NewParser(canonicalFlags, ac.Config.Args, ac.Config.NowString, ac.Config.DateLayout)
+
+	p := fp.NewParser(canonicalFlags, ac.Config.Args, ac.Config.NowString, ac.Config.DateLayout)
+	ac.Config.Parser = p
+	err := p.CheckInitialisation()
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("parser initialisation error: %v", err), runtime.Caller)
+		log.Fatal("couldn't set up flag parser")
+	}
+
+	lg.Logger.Log(lg.Info, "parser set up")
 }
 
-func (ac *AppContext) getValidFlags() []fp.FlagInfo {
+func (ac *CliContext) getValidFlags() []fp.FlagInfo {
 	switch ac.cmdName {
 	case "add":
 		return ac.getAddFlags()
@@ -94,7 +106,7 @@ func (ac *AppContext) getValidFlags() []fp.FlagInfo {
 	}
 }
 
-func (ac *AppContext) getAddFlags() []fp.FlagInfo {
+func (ac *CliContext) getAddFlags() []fp.FlagInfo {
 	var ret []fp.FlagInfo
 
 	lenMax := ac.Config.MaxLen
@@ -111,7 +123,7 @@ func (ac *AppContext) getAddFlags() []fp.FlagInfo {
 	return ret
 }
 
-func (ac *AppContext) getGetFlags() []fp.FlagInfo {
+func (ac *CliContext) getGetFlags() []fp.FlagInfo {
 	var ret []fp.FlagInfo
 
 	maxIntDigits := ac.Config.IntDigits
@@ -135,7 +147,7 @@ func (ac *AppContext) getGetFlags() []fp.FlagInfo {
 	return ret
 }
 
-func (ac *AppContext) getEditFlags() []fp.FlagInfo {
+func (ac *CliContext) getEditFlags() []fp.FlagInfo {
 	var ret []fp.FlagInfo
 
 	maxIntDigits := ac.Config.IntDigits

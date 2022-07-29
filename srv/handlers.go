@@ -18,18 +18,29 @@ type Handler struct {
 
 // Returns a new http handler. If runPl is true, then the handler will
 // maintain a priority queue as well.
-func NewHandler(runPl bool, repo godoo.IRepository) Handler {
+func NewHandler(ct godoo.ServerConfigVals) *Handler {
 
-	h := Handler{Repo: repo, priorityMode: runPl}
-	h.setupPriorityList()
+	h := &Handler{Repo: ct.Repo}
+
+	if ct.RunPriorityList {
+		h.priorityMode = true
+		h.PriorityList = ct.PriorityList
+		h.setupPriorityList()
+	}
 
 	return h
 }
 
 func (h *Handler) setupPriorityList() { // todo: look at go routines for this (maybe just the callers)
 	if h.priorityMode {
-		h.PriorityList = godoo.NewPriorityList()
+
 		all, _ := h.Repo.GetAll()
+
+		if len(h.PriorityList.List.Items) > 0 {
+			for _, v := range h.PriorityList.List.Items {
+				h.PriorityList.Delete(v.Id)
+			}
+		}
 
 		for _, v := range all {
 			h.PriorityList.Add(v)
@@ -68,9 +79,15 @@ func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 	d := json.NewDecoder(r.Body)
 	err := d.Decode(&td)
 
+	// validation
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("bad request: %v", err), runtime.Caller)
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if td.CreationDate.IsZero() { // only thing that really needs to not be empty
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("bad request: %v", err), runtime.Caller)
+		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -223,7 +240,7 @@ func (h *Handler) EditHandler(w http.ResponseWriter, r *http.Request) {
 	if len(fq) != 2 {
 		msg := "operation forbidden; two FullUserQuery structs required"
 		lg.Logger.LogWithCallerInfo(lg.Error, msg, runtime.Caller)
-		http.Error(w, msg, http.StatusForbidden)
+		http.Error(w, "operation forbidden", http.StatusForbidden)
 		return
 	}
 

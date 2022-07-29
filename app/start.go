@@ -44,24 +44,36 @@ func RunCliApp(args []string, w io.Writer) int {
 // based on user configuration options. Also starts the logger.
 func SetupCli(osArgs []string) error {
 
-	cli.CliContext = &AppContext{}
+	cli.CliContext = &CliContext{}
 	cli.CliContext.SetupCliContext(osArgs)
 
 	return nil
 }
 
 // Sets up server context & logger in a similar way to SetupCli()
-func SetSrvContext() (godoo.IRepository, bool) {
+func GetSrvConfig() godoo.ServerConfigVals {
 
 	SetConfigVals()
-	cn := getConn()
+	cf := godoo.ServerConfigVals{}
+
+	cn := getConn() //just a path on the server
 	dl := viper.GetString("DATETIME_FORMAT")
-	pl := viper.GetBool("MAINTAIN_PRIORITY_LIST")
+	port := viper.GetInt("SERVER_PORT")
+
+	cf.Conn = cn
+	cf.DateFormat = dl
+	cf.Port = port
 
 	startLogger("srv application started")
-	lg.Logger.Logf(lg.Info, "Conn: %v\n\tDateLayout: %v\n\tPriorityList: %v\n", cn, dl, pl)
 
-	return getRepo(getDbKind(viper.GetString("DB_TYPE")), cn, dl, viper.GetInt("SERVER_PORT")), pl
+	pl := viper.GetBool("MAINTAIN_PRIORITY_LIST")
+	if pl {
+		cf.PriorityList = godoo.NewPriorityList()
+	}
+	cf.Repo = getRepo(getDbKind(viper.GetString("DB_TYPE")), cn, dl, port)
+
+	lg.Logger.Logf(lg.Info, "Conn: %v\n\tDateLayout: %v\n\tPriorityList: %v\n", cn, dl, pl)
+	return cf
 }
 
 // Set default configuration values and read from env file
@@ -77,7 +89,7 @@ func SetConfigVals() {
 	viper.SetDefault("LOG_FILE_PATH", "godoo-logs")
 	viper.SetDefault("MAINTAIN_PRIORITY_LIST", true)
 
-	viper.SetConfigName("env")
+	viper.SetConfigName("env-cli")
 	viper.SetConfigType("env")
 	viper.AddConfigPath(".")
 	viper.AddConfigPath("C://fe")

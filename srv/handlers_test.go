@@ -1,7 +1,15 @@
-package srv_test
+package srv
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	godoo "github.com/mundacity/go-doo"
+	"github.com/mundacity/go-doo/fake"
+	lg "github.com/mundacity/quick-logger"
 )
 
 type test_request struct {
@@ -49,7 +57,7 @@ func getBadJsonTests() []bad_json_request {
 		name:   "getting with bad json",
 	}, {
 		json:   badJson{Name: "dud", Val: 4},
-		method: http.MethodPost,
+		method: http.MethodPut,
 		path:   "/edit",
 		code:   http.StatusBadRequest,
 		name:   "editing with bad json",
@@ -57,35 +65,48 @@ func getBadJsonTests() []bad_json_request {
 	}
 }
 
-// func TestBadJson(t *testing.T) {
+func TestBadJson(t *testing.T) {
 
-// 	tcs := getBadJsonTests()
-// 	for _, tc := range tcs {
-// 		t.Run(tc.name, func(t *testing.T) {
-// 			runBadJsonTest(t, tc)
-// 		})
-// 	}
+	lg.Logger = lg.NewDummyLogger()
+	tcs := getBadJsonTests()
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			runBadJsonTest(t, tc)
+		})
+	}
 
-// }
+}
 
-// func runBadJsonTest(t *testing.T, tc bad_json_request) {
-// 	w := httptest.NewRecorder()
-// 	h := srv.Handler{Repo: fake.Repo{}}
+func runBadJsonTest(t *testing.T, tc bad_json_request) {
 
-// 	var b bytes.Buffer
-// 	err := json.NewEncoder(&b).Encode(tc.json)
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
+	w := httptest.NewRecorder()
 
-// 	req, _ := http.NewRequest(tc.method, tc.path, &b)
-// 	h.HandleRequests(w, req)
-// 	resp := fmt.Sprint(w.Body)
+	c := godoo.ServerConfigVals{}
+	c.Conn = ""
+	c.DateFormat = "2006-01-02"
+	c.PriorityList = godoo.NewPriorityList()
+	c.RunPriorityList = true
+	c.Repo = fake.RepoDud{}
 
-// 	if resp == "" {
+	f := FakeSrvContext{}
+	f.SetupServerContext(c)
 
-// 	}
-// }
+	var b bytes.Buffer
+	err := json.NewEncoder(&b).Encode(tc.json)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	req, _ := http.NewRequest(tc.method, tc.path, &b)
+	f.handler.HandleRequests(w, req)
+	//resp := fmt.Sprint(w.Body)
+
+	if w.Code != tc.code {
+		t.Errorf(">>>>FAIL: http status code mismatch: got %v, expecting %v", w.Code, tc.code)
+	} else {
+		t.Logf(">>>>PASS: http status code match: got %v, expecting %v", w.Code, tc.code)
+	}
+}
 
 // func TestRunHandlerTests(t *testing.T) {
 
