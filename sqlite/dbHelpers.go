@@ -86,7 +86,7 @@ func getInsertSql(db godoo.DbType, tbl table) string {
 	switch db {
 	case godoo.Sqlite:
 		if tbl == items {
-			return "insert into items (parentId, creationDate, deadline, body, priority) values (?, ?, ?, ?)"
+			return "insert into items (parentId, creationDate, deadline, body, priority) values (?, ?, ?, ?, ?)"
 		} else if tbl == tags {
 			return "INSERT INTO tags (itemId, tag) VALUES (?, ?)"
 		}

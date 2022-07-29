@@ -43,7 +43,9 @@ func (h *Handler) setupPriorityList() { // todo: look at go routines for this (m
 		}
 
 		for _, v := range all {
-			h.PriorityList.Add(v)
+			if !v.IsComplete {
+				h.PriorityList.Add(v)
+			}
 		}
 	}
 }

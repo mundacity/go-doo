@@ -149,7 +149,7 @@ func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
 	var i int64
 
 	d := json.NewDecoder(resp.Body)
-
+	d.DisallowUnknownFields()
 	if err = d.Decode(&i); err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json decoding error: %v", err), runtime.Caller)
 	}
