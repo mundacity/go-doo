@@ -77,6 +77,8 @@ func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 
 	var td godoo.TodoItem
 	d := json.NewDecoder(r.Body)
+
+	d.DisallowUnknownFields()
 	err := d.Decode(&td)
 
 	// validation
@@ -121,6 +123,7 @@ func (h *Handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 	var fq godoo.FullUserQuery
 	d := json.NewDecoder(r.Body)
 
+	d.DisallowUnknownFields()
 	err = d.Decode(&fq)
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("bad request: %v", err), runtime.Caller)
@@ -229,6 +232,8 @@ func (h *Handler) EditHandler(w http.ResponseWriter, r *http.Request) {
 
 	var fq []godoo.FullUserQuery
 	d := json.NewDecoder(r.Body)
+
+	d.DisallowUnknownFields()
 	err := d.Decode(&fq)
 
 	if err != nil {

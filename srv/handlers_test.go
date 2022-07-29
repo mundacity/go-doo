@@ -77,18 +77,22 @@ func TestBadJson(t *testing.T) {
 
 }
 
-func runBadJsonTest(t *testing.T, tc bad_json_request) {
-
-	w := httptest.NewRecorder()
-
+func getSrvConfig() godoo.ServerConfigVals {
 	c := godoo.ServerConfigVals{}
 	c.Conn = ""
 	c.DateFormat = "2006-01-02"
 	c.PriorityList = godoo.NewPriorityList()
 	c.RunPriorityList = true
 	c.Repo = fake.RepoDud{}
+	return c
+}
+
+func runBadJsonTest(t *testing.T, tc bad_json_request) {
+
+	w := httptest.NewRecorder()
 
 	f := FakeSrvContext{}
+	c := getSrvConfig()
 	f.SetupServerContext(c)
 
 	var b bytes.Buffer
@@ -110,6 +114,7 @@ func runBadJsonTest(t *testing.T, tc bad_json_request) {
 
 // func TestRunHandlerTests(t *testing.T) {
 
+// 	lg.Logger = lg.NewDummyLogger()
 // 	tcs := getTestRequests()
 
 // 	for _, tc := range tcs {
@@ -120,7 +125,21 @@ func runBadJsonTest(t *testing.T, tc bad_json_request) {
 // }
 
 // func runHandlerTests(t *testing.T, tc test_request) {
+
 // 	w := httptest.NewRecorder()
-// 	req, _ := http.NewRequest(http.MethodGet, tc.path, nil)
-// 	srv.HandleRequests(w, req)
+
+// 	f := FakeSrvContext{}
+// 	c := getSrvConfig()
+// 	f.SetupServerContext(c)
+
+// 	var b bytes.Buffer
+// 	req, _ := http.NewRequest(tc.method, tc.path, &b)
+
+// 	f.handler.HandleRequests(w, req)
+
+// 	if w.Code != tc.expectedCode {
+// 		t.Errorf(">>>>FAIL: http status code mismatch: got %v, expecting %v", w.Code, tc.expectedCode)
+// 	} else {
+// 		t.Logf(">>>>PASS: http status code match: got %v, expecting %v", w.Code, tc.expectedCode)
+// 	}
 // }

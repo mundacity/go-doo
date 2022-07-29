@@ -68,6 +68,7 @@ func GetSrvConfig() godoo.ServerConfigVals {
 
 	pl := viper.GetBool("MAINTAIN_PRIORITY_LIST")
 	if pl {
+		cf.RunPriorityList = false
 		cf.PriorityList = godoo.NewPriorityList()
 	}
 	cf.Repo = getRepo(getDbKind(viper.GetString("DB_TYPE")), cn, dl, port)
