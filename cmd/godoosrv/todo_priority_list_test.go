@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	godoo "github.com/mundacity/go-doo"
 )
@@ -12,6 +13,7 @@ type test_item_info struct {
 	id       int
 	name     string
 	priority godoo.PriorityLevel
+	deadline time.Time
 }
 
 func TestPriorityListCreation(t *testing.T) {
@@ -120,26 +122,36 @@ func TestPoppingMultiple(t *testing.T) {
 }
 
 func getTestPoppingItems() []test_item_info {
+
+	dl := "2006-01-02"
+	dateStr := "2022-03-14"
+
+	t, _ := time.Parse(dl, dateStr)
 	itms := []test_item_info{{
 		id:       7,
 		name:     "id = 7, priority low",
 		priority: godoo.Low,
+		deadline: t.Add(time.Hour * 24),
 	}, {
 		id:       8,
 		name:     "id = 8, priority none",
 		priority: godoo.None,
+		deadline: t,
 	}, {
 		id:       10,
 		name:     "id = 10, priority high",
 		priority: godoo.High,
+		deadline: t,
 	}, {
 		id:       9,
 		name:     "id = 9, priority medium",
 		priority: godoo.Medium,
+		deadline: t.Add(time.Hour * 24),
 	}, {
 		id:       11,
 		name:     "id = 11, priority medium",
 		priority: godoo.Medium,
+		deadline: t.Add(time.Hour * 48),
 	},
 	}
 	return itms
@@ -253,4 +265,40 @@ func TestInvalidUpdate(t *testing.T) {
 	} else {
 		t.Errorf("%v%v", getText(false), fmt.Sprintf("expected 'supplied id does not exist', got '%v'", err))
 	}
+}
+
+func TestDateModePriority(t *testing.T) {
+
+	// outcome: highest priority first; if 2 or more of
+	// equal priority, then assess by date & return the
+	// item with the closest deadline
+
+	itms := getTestPoppingItems()
+	pl := godoo.NewPriorityList()
+
+	for _, itm := range itms {
+		td := godoo.NewTodoItem(godoo.WithPriorityLevel(itm.priority))
+		td.Id = itm.id
+		td.Body = itm.name
+		td.Deadline = itm.deadline
+		pl.Add(*td)
+	}
+
+	expIdOrder := []int{10, 9, 11, 7, 8}
+	gotOrder := []int{}
+
+	for range expIdOrder {
+		td, _ := pl.GetNext()
+		gotOrder = append(gotOrder, td.Id)
+	}
+
+	for i := range expIdOrder {
+		if expIdOrder[i] != gotOrder[i] {
+			t.Errorf("%v%v", getText(false), fmt.Sprintf("slice order not the same: exp = %v, got = %v", expIdOrder[i], gotOrder[i]))
+			return
+		}
+	}
+
+	t.Log("slice order as expected")
+
 }
