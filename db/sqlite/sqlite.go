@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-func returnSqliteDb(path string, isNewDb bool) *sql.DB {
+func ReturnSqliteDb(path string, isNewDb bool) *sql.DB {
 
 	ret, _ := sql.Open("sqlite3", path)
 	if isNewDb {
@@ -60,4 +60,64 @@ func GetBodyAndWhereVal(existingVal any) any {
 
 func BuildBodySqlStr(andStr, colName string) string {
 	return fmt.Sprintf("%v%v like ?", andStr, colName)
+}
+
+func GenerateUpdatePairs(colName, comma, sqlBase string, colVal any, appending, replacing bool) (string, []any) {
+
+	var vals []any
+
+	if colName == "body" {
+		if appending {
+			sqlBase += fmt.Sprintf("%v = %v || ?%v", colName, colName, comma)
+		} else if replacing {
+			sqlBase += fmt.Sprintf("%v = ?%v", colName, comma)
+		}
+		vals = append(vals, colVal)
+		return sqlBase, vals
+	}
+	if colName == "isComplete" {
+		sqlBase += fmt.Sprintf("%v = not %v%v", colName, colName, comma)
+		return sqlBase, vals
+	}
+	//only ever 1 value for an update
+	if colName == "creationDate" || colName == "deadline" {
+		vs := colVal.([]string)
+		colVal = vs[0]
+	}
+
+	sqlBase += fmt.Sprintf("%v = ?%v", colName, comma)
+	vals = append(vals, colVal)
+
+	return sqlBase, vals
+}
+
+func GenerateWhereClause(colName, sqlBase, andStr string, colVal any) (string, []any) {
+
+	vals := make([]any, 1)
+
+	if colName == "body" {
+		colVal = fmt.Sprintf("%%%v%%", colVal) //like '%fishy%'
+		sqlBase += fmt.Sprintf("%v%v like ?", andStr, colName)
+		vals[0] = colVal
+
+		return sqlBase, vals
+	}
+	if colName == "creationDate" || colName == "deadline" {
+
+		vs := colVal.([]string)
+		if len(vs) > 1 { //it's a range search
+			sqlBase += fmt.Sprintf("%v%v between ? and ?", andStr, colName)
+			vals[0] = vs[0]
+			vals = append(vals, vs[1])
+
+			return sqlBase, vals
+		} else {
+			colVal = vs[0]
+		}
+	}
+	sqlBase += fmt.Sprintf("%v%v = ?", andStr, colName)
+	vals[0] = colVal
+
+	return sqlBase, vals
+
 }

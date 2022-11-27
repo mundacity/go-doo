@@ -6,7 +6,7 @@ import (
 
 	godoo "github.com/mundacity/go-doo"
 	"github.com/mundacity/go-doo/cli"
-	"github.com/mundacity/go-doo/sqlite"
+	"github.com/mundacity/go-doo/db"
 	lg "github.com/mundacity/quick-logger"
 	"github.com/spf13/viper"
 )
@@ -141,7 +141,7 @@ func getRepo(dbKind godoo.DbType, connStr, dateLayout string, port int) godoo.IR
 	lg.Logger.Logf(lg.Info, "Port: %v", port)
 	switch dbKind {
 	case godoo.Sqlite:
-		return sqlite.SetupRepo(connStr, dbKind, dateLayout, port)
+		return db.SetupRepo(connStr, dbKind, dateLayout, port)
 	}
 
 	lg.Logger.Log(lg.Warning, "repo wasn't set up properly")

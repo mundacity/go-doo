@@ -1,14 +1,41 @@
-package sqlite
+package db
 
 import (
 	"context"
 	"database/sql"
 	"os"
+	"sync"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	godoo "github.com/mundacity/go-doo"
+	"github.com/mundacity/go-doo/db/sqlite"
 	"github.com/mundacity/go-doo/util"
+)
+
+// Encapsulates everything that isn't specific to a given db vendor
+//
+// Vendor-specific logic etc located in separate subfolders
+
+// Basic type to encapsulate the various IRepository methods
+type Repo struct {
+	db   *sql.DB
+	dl   string
+	kind godoo.DbType
+	Port int
+	Mtx  sync.Mutex
+}
+
+// Repo used by the app
+var AppRepo Repo
+
+// Enum to decribe which db Table/s to work with
+type table int
+
+const (
+	items table = iota
+	tags
+	all
 )
 
 func SetupRepo(conn string, dbKind godoo.DbType, dateLayout string, port int) *Repo {
@@ -24,7 +51,7 @@ func setup(path string) *sql.DB {
 		os.Create(path)
 	}
 
-	return returnSqliteDb(path, newDb)
+	return sqlite.ReturnSqliteDb(path, newDb)
 }
 
 func (r *Repo) Add(itm *godoo.TodoItem) (int64, error) {
