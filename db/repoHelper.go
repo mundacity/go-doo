@@ -8,24 +8,6 @@ import (
 	"github.com/mundacity/go-doo/db/sqlite"
 )
 
-// Helps when scanning using sql.Rows.Scan
-type temp_item struct {
-	id           int
-	parentId     int
-	creationDate string
-	deadline     string
-	body         string
-	isComplete   bool
-	tag          string
-	priority     int
-}
-
-// Field & value pairing to allow for composite where clauses
-type where_map_entry struct {
-	columnName string
-	colValue   any
-}
-
 func getSql(qType godoo.QueryType, dbKind godoo.DbType, tbl table) string {
 	switch qType {
 	case godoo.Add:

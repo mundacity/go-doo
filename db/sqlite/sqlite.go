@@ -6,6 +6,8 @@ import (
 	"fmt"
 )
 
+// Vendor-specific SQL
+
 func ReturnSqliteDb(path string, isNewDb bool) *sql.DB {
 
 	ret, _ := sql.Open("sqlite3", path)

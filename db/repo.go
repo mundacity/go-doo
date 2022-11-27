@@ -38,6 +38,24 @@ const (
 	all
 )
 
+// Helps when scanning using sql.Rows.Scan
+type temp_item struct {
+	id           int
+	parentId     int
+	creationDate string
+	deadline     string
+	body         string
+	isComplete   bool
+	tag          string
+	priority     int
+}
+
+// Field & value pairing to allow for composite where clauses
+type where_map_entry struct {
+	columnName string
+	colValue   any
+}
+
 func SetupRepo(conn string, dbKind godoo.DbType, dateLayout string, port int) *Repo {
 	Db := setup(conn)
 	AppRepo = Repo{db: Db, dl: dateLayout, kind: dbKind, Port: port}
