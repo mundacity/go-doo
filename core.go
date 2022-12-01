@@ -60,12 +60,15 @@ type ConfigVals struct {
 }
 
 type ServerConfigVals struct {
-	Repo            IRepository
-	Conn            string
-	DateFormat      string
-	PriorityList    *PriorityList
-	RunPriorityList bool
-	Port            int
+	Repo             IRepository
+	Conn             string
+	DateFormat       string
+	PriorityList     *PriorityList
+	RunPriorityList  bool
+	Port             int
+	KeyPath          string
+	UserPasswordHash string
+	ExpirationLimit  int
 }
 
 // Flags used throughout the system

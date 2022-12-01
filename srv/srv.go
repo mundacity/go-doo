@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	godoo "github.com/mundacity/go-doo"
+	"github.com/mundacity/go-doo/srv/auth"
 )
 
 type SrvContext struct {
@@ -25,7 +26,7 @@ func (s *SrvContext) SetupServerContext(cf godoo.ServerConfigVals) {
 	s.handler = NewHandler(cf)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/test", s.handler.TestHandler)
+	mux.HandleFunc("/test", auth.ValidateJwt(s.config.KeyPath, s.handler.TestHandler))
 	mux.HandleFunc("/add", s.handler.HandleRequests)
 	mux.HandleFunc("/get", s.handler.HandleRequests)
 	mux.HandleFunc("/edit", s.handler.HandleRequests)
@@ -37,6 +38,7 @@ func (s *SrvContext) SetupServerContext(cf godoo.ServerConfigVals) {
 	}
 }
 
+// TODO: reconfigure to use middleware in idiomatic style
 func (s *SrvContext) Serve() {
 	log.Fatal(s.Server.ListenAndServe())
 }

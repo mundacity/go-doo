@@ -12,3 +12,6 @@ BASE_URL = "http://localhost"
 ENABLE_LOGGING = true
 LOG_FILE_PATH = "godoo-srv-logs"
 MAINTAIN_PRIORITY_LIST = true
+KEY_PATH = "/path/to/key/file/e.g. rsa"
+USER_PASSWORD_HASH = "a01Bc23D..."
+JWT_EXPIRATION_HOURS = 8

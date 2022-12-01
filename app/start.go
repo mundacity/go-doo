@@ -59,10 +59,16 @@ func GetSrvConfig() godoo.ServerConfigVals {
 	cn := getConn() //just a path on the server
 	dl := viper.GetString("DATETIME_FORMAT")
 	port := viper.GetInt("SERVER_PORT")
+	keyPath := viper.GetString("KEY_PATH")
+	pHash := viper.GetString("USER_PASSWORD_HASH")
+	exp := viper.GetInt("JWT_EXPIRATION_HOURS")
 
 	cf.Conn = cn
 	cf.DateFormat = dl
 	cf.Port = port
+	cf.KeyPath = keyPath
+	cf.UserPasswordHash = pHash
+	cf.ExpirationLimit = exp
 
 	startLogger("srv application started")
 
