@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	godoo "github.com/mundacity/go-doo"
-	"github.com/mundacity/go-doo/srv/auth"
+	"github.com/mundacity/go-doo/auth"
 )
 
 type SrvContext struct {

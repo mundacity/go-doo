@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	godoo "github.com/mundacity/go-doo"
+	"github.com/mundacity/go-doo/auth"
 	lg "github.com/mundacity/quick-logger"
 )
 
@@ -14,6 +15,8 @@ type Handler struct {
 	Repo         godoo.IRepository
 	PriorityList *godoo.PriorityList
 	priorityMode bool
+	path         string
+	pwHash       string
 }
 
 // Returns a new http handler. If runPl is true, then the handler will
@@ -21,6 +24,8 @@ type Handler struct {
 func NewHandler(ct godoo.ServerConfigVals) *Handler {
 
 	h := &Handler{Repo: ct.Repo}
+	h.path = ct.KeyPath
+	h.pwHash = ct.UserPasswordHash
 
 	if ct.RunPriorityList {
 		h.priorityMode = true
@@ -62,7 +67,8 @@ func (h *Handler) HandleRequests(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		h.GetHandler(w, r)
+		//auth.Authenticate(r, h.path, h.pwHash)
+		auth.ValidateJwt(h.path, h.GetHandler)
 	case http.MethodPut:
 		h.EditHandler(w, r)
 	case http.MethodPost:

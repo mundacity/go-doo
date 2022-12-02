@@ -67,7 +67,34 @@ func getPrivateKey(keyPath string) (*rsa.PrivateKey, error) {
 
 		contents = rest
 	}
-	return nil, errors.New("key retrieval error")
+	//return nil, errors.New("key retrieval error")
+}
+
+func GetPublicKey(keyPath string) (string, error) {
+	// get file contents
+	contents, err := os.ReadFile(keyPath)
+	if err != nil {
+		return "", errors.New("failed to retrieve key")
+	}
+
+	//pubkey_pem := string(pem.EncodeToMemory(&pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(contents)}))
+	//key, _, _, _, _ := ssh.ParseAuthorizedKey(contents)
+	//pubPem := pem.EncodeToMemory(&pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(key)})
+
+	for {
+
+		block, rest := pem.Decode(contents)
+		if block.Type == "PUBLIC KEY" {
+			_, err := x509.ParsePKIXPublicKey(block.Bytes)
+			if err == nil {
+				//return k, nil
+				return string(block.Bytes), nil
+			}
+		}
+
+		contents = rest
+	}
+	//return nil, errors.New("key retrieval error")
 }
 
 func generateJWT(key *rsa.PrivateKey) (string, error) {
@@ -115,8 +142,9 @@ func ValidateToken(tokenString, keyPath string) error {
 }
 
 func ValidateJwt(keyPath string, handlerFunc func(w http.ResponseWriter, r *http.Request)) http.HandlerFunc {
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header["Token"] == nil {
+		if r.Header["Token"] == nil || r.Header["Token"][0] == "" {
 			http.Error(w, "unauthorised", http.StatusUnauthorized)
 			return
 		}
@@ -144,3 +172,17 @@ func ValidateJwt(keyPath string, handlerFunc func(w http.ResponseWriter, r *http
 
 	})
 }
+
+/*
+	client auth
+
+	- wrap cli commands
+	- try existing jwt
+		- if valid, great - srv deals with request
+		- if not, srv returns error (if jwt empty string, client handle),
+			- handle error - submit password (prompt user), get valid jwt and store in env
+				- allow up to 3 password attempts
+			- retry command
+
+
+*/

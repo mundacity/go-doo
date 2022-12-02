@@ -212,6 +212,10 @@ func (gCmd *GetCommand) remoteGet(w io.Writer, fq godoo.FullUserQuery) error {
 	}
 	rq.Header.Set("content-type", "application/json")
 
+	//key, _ := auth.GetPublicKey(gCmd.conf.SrvPublicKeyPath)
+
+	rq.Header.Set("Token", gCmd.conf.JwtString)
+
 	// getting response
 	resp, err := gCmd.conf.Client.Do(rq)
 	if err != nil {

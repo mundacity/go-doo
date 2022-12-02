@@ -95,11 +95,12 @@ func SetConfigVals() {
 	viper.SetDefault("BASE_URL", "http://localhost")
 	viper.SetDefault("LOG_FILE_PATH", "godoo-logs")
 	viper.SetDefault("MAINTAIN_PRIORITY_LIST", true)
+	viper.SetDefault("SRV_PUBLIC_KEY_PATH", "")
 
-	viper.SetConfigName("env-cli")
+	viper.SetConfigName("example-client-env")
 	viper.SetConfigType("env")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("C://fe")
+	viper.AddConfigPath("~/")
 	viper.ReadInConfig()
 }
 
