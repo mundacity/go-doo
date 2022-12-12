@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -48,6 +49,24 @@ func Authenticate(r *http.Request, keyPath, userPasswordHash string) (string, er
 	return msg, errors.New(msg)
 }
 
+func RequestAuthentication(r *http.Request, keyPath, userPw string) error {
+
+	pub, err := GetPublicKey(keyPath)
+	if err != nil {
+		return err
+	}
+
+	encryptedPw, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, pub, []byte(userPw), []byte(""))
+	if err != nil {
+		return err
+	}
+
+	s := base64.StdEncoding.EncodeToString(encryptedPw)
+
+	r.Header.Set("Auth", s)
+	return nil
+}
+
 func getPrivateKey(keyPath string) (*rsa.PrivateKey, error) {
 
 	// get file contents
@@ -67,34 +86,27 @@ func getPrivateKey(keyPath string) (*rsa.PrivateKey, error) {
 
 		contents = rest
 	}
-	//return nil, errors.New("key retrieval error")
 }
 
-func GetPublicKey(keyPath string) (string, error) {
+func GetPublicKey(keyPath string) (*rsa.PublicKey, error) {
 	// get file contents
 	contents, err := os.ReadFile(keyPath)
 	if err != nil {
-		return "", errors.New("failed to retrieve key")
+		return nil, errors.New("failed to retrieve key")
 	}
-
-	//pubkey_pem := string(pem.EncodeToMemory(&pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(contents)}))
-	//key, _, _, _, _ := ssh.ParseAuthorizedKey(contents)
-	//pubPem := pem.EncodeToMemory(&pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(key)})
 
 	for {
 
 		block, rest := pem.Decode(contents)
 		if block.Type == "PUBLIC KEY" {
-			_, err := x509.ParsePKIXPublicKey(block.Bytes)
+			k, err := x509.ParsePKIXPublicKey(block.Bytes)
 			if err == nil {
-				//return k, nil
-				return string(block.Bytes), nil
+				return k.(*rsa.PublicKey), nil
 			}
 		}
 
 		contents = rest
 	}
-	//return nil, errors.New("key retrieval error")
 }
 
 func generateJWT(key *rsa.PrivateKey) (string, error) {
@@ -108,14 +120,6 @@ func generateJWT(key *rsa.PrivateKey) (string, error) {
 		return "", err
 	}
 	return tokenStr, nil
-
-	// exp := time.Now().Add(time.Hour * 8).Unix()
-	// claims := &jwt.StandardClaims{
-	// 	ExpiresAt: exp,
-	// }
-
-	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	// return token.SignedString(key)
 }
 
 func ValidateToken(tokenString, keyPath string) error {
@@ -145,14 +149,14 @@ func ValidateJwt(keyPath string, handlerFunc func(w http.ResponseWriter, r *http
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header["Token"] == nil || r.Header["Token"][0] == "" {
-			http.Error(w, "unauthorised", http.StatusUnauthorized)
+			http.Error(w, "missing header/s", http.StatusBadRequest)
 			return
 		}
 
 		token, err := jwt.Parse(r.Header["Token"][0], func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				http.Error(w, "unauthorised", http.StatusUnauthorized)
-				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+				return nil, errors.New("unexpected signing method")
 			}
 
 			k, err := getPrivateKey(keyPath)
@@ -162,27 +166,16 @@ func ValidateJwt(keyPath string, handlerFunc func(w http.ResponseWriter, r *http
 
 			return k, nil
 		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+		}
 
 		if _, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			handlerFunc(w, r)
 			return
 		} else {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			http.Error(w, "invalid", http.StatusUnauthorized)
 		}
 
 	})
 }
-
-/*
-	client auth
-
-	- wrap cli commands
-	- try existing jwt
-		- if valid, great - srv deals with request
-		- if not, srv returns error (if jwt empty string, client handle),
-			- handle error - submit password (prompt user), get valid jwt and store in env
-				- allow up to 3 password attempts
-			- retry command
-
-
-*/
