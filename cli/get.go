@@ -217,12 +217,24 @@ func (gCmd *GetCommand) remoteGet(w io.Writer, fq godoo.FullUserQuery) error {
 	rq.Header.Set("Token", gCmd.conf.JwtString)
 
 	// getting response
-	resp, err := gCmd.conf.Client.Do(rq)
+	resp, err := sendRequest(rq, &gCmd.conf.Client)
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		url := gCmd.conf.RemoteUrl + "/authenticate"
+		req, _ := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
+
+		jwt, err := authenticateUser(gCmd.conf.SrvPublicKeyPath, &gCmd.conf.Client, req)
+		if err != nil {
+			return err
+		}
+		gCmd.conf.JwtString = jwt
+		return &ReAuthenticationRequired{}
+	}
 
 	var itms []godoo.TodoItem
 	d := json.NewDecoder(resp.Body)

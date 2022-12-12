@@ -272,3 +272,11 @@ func (h *Handler) EditHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(i)
 	lg.Logger.Log(lg.Info, "edit handler completed execution")
 }
+
+func (h *Handler) AuthenticateHandler(w http.ResponseWriter, r *http.Request) {
+	token, e := auth.Authenticate(r, h.path, h.pwHash)
+	if e != nil {
+		http.Error(w, e.Error(), http.StatusInternalServerError)
+	}
+	w.Header().Set("Token", token)
+}
