@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net/http"
@@ -53,6 +54,18 @@ func sendRequest(r *http.Request, c *http.Client) (*http.Response, error) {
 	}
 
 	return resp, nil
+}
+
+func checkAuthorisation(url, srvPubPath string, c *http.Client) (string, error) {
+	url += "/authenticate"
+	req, _ := http.NewRequest("GET", url, bytes.NewBuffer([]byte("")))
+
+	jwt, err := authenticateUser(srvPubPath, c, req)
+	if err != nil {
+		return "", err
+	}
+
+	return jwt, &ReAuthenticationRequired{}
 }
 
 func authenticateUser(pubKeyPath string, c *http.Client, r *http.Request) (string, error) {
