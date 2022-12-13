@@ -27,9 +27,10 @@ func (s *SrvContext) SetupServerContext(cf godoo.ServerConfigVals) {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/test", auth.ValidateJwt(s.config.KeyPath, s.handler.TestHandler))
-	mux.HandleFunc("/add", s.handler.HandleRequests)
-	mux.HandleFunc("/get", s.handler.HandleRequests)
-	mux.HandleFunc("/edit", s.handler.HandleRequests)
+	mux.HandleFunc("/add", auth.ValidateJwt(s.config.KeyPath, s.handler.HandleRequests))
+	mux.HandleFunc("/get", auth.ValidateJwt(s.config.KeyPath, s.handler.HandleRequests))
+	mux.HandleFunc("/edit", auth.ValidateJwt(s.config.KeyPath, s.handler.HandleRequests))
+	mux.HandleFunc("/authenticate", auth.Authenticate(s.config.KeyPath, s.config.UserPasswordHash, s.handler.HandleRequests))
 
 	add := fmt.Sprintf(":%v", s.config.Port)
 	s.Server = http.Server{

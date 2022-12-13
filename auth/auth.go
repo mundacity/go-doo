@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -17,35 +18,63 @@ import (
 )
 
 // authenticate user and generate jwt
-func Authenticate(r *http.Request, keyPath, userPasswordHash string) (string, error) {
+func Authenticate(keyPath, userPasswordHash string, handlerFunc func(w http.ResponseWriter, r *http.Request)) http.HandlerFunc { //(string, error) {
 
-	// get encrypted password from header
-	clientKey := r.Header.Get("Authorization")
-	if clientKey == "" {
-		msg := "no token in header"
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// get encrypted password from header
+		b64clientKey := r.Header.Get("Auth")
+		if b64clientKey == "" {
+			msg := "no token in header"
+			lg.Logger.Log(lg.Warning, msg)
+			http.Error(w, msg, http.StatusBadRequest)
+			return
+		}
+
+		key, err := base64.StdEncoding.DecodeString(b64clientKey)
+		if err != nil {
+			lg.Logger.Log(lg.Error, err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		privateKey, err := getPrivateKey(keyPath)
+		if err != nil {
+			lg.Logger.Log(lg.Error, err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// decrypt clientKey with server private key --> plain text version of user password
+		userPasswordPlainText, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, privateKey, []byte(key), []byte(""))
+		if err != nil {
+			//return "", err //TODO: label needs to be same as that used when encrypting --> add to client
+			lg.Logger.Log(lg.Error, err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// hash user password & check against hash stored in app
+		h := sha256.New()
+		h.Write(userPasswordPlainText)
+		n := h.Sum(nil)
+		fm := fmt.Sprintf("%x", n)
+
+		if fm == userPasswordHash {
+			// then it's me so generate jwt with 8 hour expiry
+			jwt, err := generateJWT(privateKey)
+			if err != nil {
+				lg.Logger.Log(lg.Error, err.Error())
+				http.Error(w, "jwt generation error", http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Auth", jwt)
+			handlerFunc(w, r)
+		}
+		msg := "authentication error"
 		lg.Logger.Log(lg.Info, msg)
-		return msg, errors.New(msg)
-	}
+		http.Error(w, msg, http.StatusInternalServerError)
+	})
 
-	privateKey, err := getPrivateKey(keyPath)
-	if err != nil {
-		return err.Error(), err
-	}
-
-	// decrypt clientKey with server private key --> plain text version of user password
-	userPasswordPlainText, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, privateKey, []byte(clientKey), []byte(""))
-	if err != nil {
-		return "", err //TODO: label needs to be same as that used when encrypting --> add to client
-	}
-
-	// hash user password & check against hash stored in app
-	hashPw := sha256.Sum256(userPasswordPlainText)
-	if string(hashPw[:]) == userPasswordHash {
-		// then it's me so generate jwt with 8 hour expiry
-		return generateJWT(privateKey)
-	}
-	msg := "authentication error"
-	return msg, errors.New(msg)
 }
 
 func getPrivateKey(keyPath string) (*rsa.PrivateKey, error) {
@@ -59,15 +88,14 @@ func getPrivateKey(keyPath string) (*rsa.PrivateKey, error) {
 	for {
 
 		block, rest := pem.Decode(contents)
-		if block.Type == "RSA PRIVATE KEY" { // private key should be first so only one loop
-			if k, err := x509.ParsePKCS1PrivateKey(block.Bytes); err == nil {
-				return k, nil
+		if block.Type == "PRIVATE KEY" { // private key should be first so only one loop
+			if k, err := x509.ParsePKCS8PrivateKey(block.Bytes); err == nil {
+				return k.(*rsa.PrivateKey), nil
 			}
 		}
 
 		contents = rest
 	}
-	//return nil, errors.New("key retrieval error")
 }
 
 func GetPublicKey(keyPath string) (string, error) {
@@ -77,24 +105,18 @@ func GetPublicKey(keyPath string) (string, error) {
 		return "", errors.New("failed to retrieve key")
 	}
 
-	//pubkey_pem := string(pem.EncodeToMemory(&pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(contents)}))
-	//key, _, _, _, _ := ssh.ParseAuthorizedKey(contents)
-	//pubPem := pem.EncodeToMemory(&pem.Block{Type: "RSA PUBLIC KEY", Bytes: x509.MarshalPKCS1PublicKey(key)})
-
 	for {
 
 		block, rest := pem.Decode(contents)
 		if block.Type == "PUBLIC KEY" {
 			_, err := x509.ParsePKIXPublicKey(block.Bytes)
 			if err == nil {
-				//return k, nil
 				return string(block.Bytes), nil
 			}
 		}
 
 		contents = rest
 	}
-	//return nil, errors.New("key retrieval error")
 }
 
 func generateJWT(key *rsa.PrivateKey) (string, error) {
@@ -103,19 +125,20 @@ func generateJWT(key *rsa.PrivateKey) (string, error) {
 	claims := token.Claims.(jwt.MapClaims)
 	claims["exp"] = time.Now().Add(time.Hour * 8).Unix()
 
-	tokenStr, err := token.SignedString(key)
+	bs, _ := x509.MarshalPKCS8PrivateKey(key)
+	pemdata := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "PRIVATE KEY",
+			Bytes: bs,
+		},
+	)
+
+	tokenStr, err := token.SignedString(pemdata)
 	if err != nil {
 		return "", err
 	}
 	return tokenStr, nil
 
-	// exp := time.Now().Add(time.Hour * 8).Unix()
-	// claims := &jwt.StandardClaims{
-	// 	ExpiresAt: exp,
-	// }
-
-	// token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	// return token.SignedString(key)
 }
 
 func ValidateToken(tokenString, keyPath string) error {
@@ -160,7 +183,15 @@ func ValidateJwt(keyPath string, handlerFunc func(w http.ResponseWriter, r *http
 				http.Error(w, "key retrieval error", http.StatusInternalServerError)
 			}
 
-			return k, nil
+			bs, _ := x509.MarshalPKCS8PrivateKey(k)
+			pemdata := pem.EncodeToMemory(
+				&pem.Block{
+					Type:  "PRIVATE KEY",
+					Bytes: bs,
+				},
+			)
+
+			return pemdata, nil
 		})
 
 		if _, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
@@ -172,17 +203,3 @@ func ValidateJwt(keyPath string, handlerFunc func(w http.ResponseWriter, r *http
 
 	})
 }
-
-/*
-	client auth
-
-	- wrap cli commands
-	- try existing jwt
-		- if valid, great - srv deals with request
-		- if not, srv returns error (if jwt empty string, client handle),
-			- handle error - submit password (prompt user), get valid jwt and store in env
-				- allow up to 3 password attempts
-			- retry command
-
-
-*/

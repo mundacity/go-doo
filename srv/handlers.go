@@ -7,7 +7,6 @@ import (
 	"runtime"
 
 	godoo "github.com/mundacity/go-doo"
-	"github.com/mundacity/go-doo/auth"
 	lg "github.com/mundacity/quick-logger"
 )
 
@@ -67,8 +66,7 @@ func (h *Handler) HandleRequests(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
-		//auth.Authenticate(r, h.path, h.pwHash)
-		auth.ValidateJwt(h.path, h.GetHandler)
+		h.GetHandler(w, r)
 	case http.MethodPut:
 		h.EditHandler(w, r)
 	case http.MethodPost:
@@ -77,6 +75,10 @@ func (h *Handler) HandleRequests(w http.ResponseWriter, r *http.Request) {
 		lg.Logger.LogWithCallerInfo(lg.Error, "method not allowed", runtime.Caller)
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func (h *Handler) AuthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
