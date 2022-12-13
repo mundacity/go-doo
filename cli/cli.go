@@ -79,50 +79,6 @@ func authenticateUser(pubKeyPath string, c *http.Client, r *http.Request) (strin
 func requestPassword() (string, error) {
 
 	lg.Logger.Log(lg.Info, "requesting user password")
-	fmt.Print("\nEnter password to authenticate: ")
-	pwd, err := term.ReadPassword(int(os.Stdin.Fd()))
-
-	if err != nil {
-		return "", err
-	}
-
-	return string(pwd), nil
-}
-
-func sendRequest(r *http.Request, c *http.Client) (*http.Response, error) {
-	resp, err := c.Do(r)
-	if err != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-func authenticateUser(pubKeyPath string, c *http.Client, r *http.Request) (string, error) {
-	pw, err := requestPassword()
-	if err != nil {
-		return "", err
-	}
-	auth.RequestAuthentication(r, pubKeyPath, pw)
-
-	rsp, err := sendRequest(r, c)
-
-	if err != nil {
-		return "", err
-	}
-
-	jwt := rsp.Header.Get("Auth")
-	if jwt == "" {
-		return jwt, errors.New("jwt blank")
-	}
-
-	return jwt, nil
-}
-
-func requestPassword() (string, error) {
-
-	lg.Logger.Log(lg.Info, "requesting user password")
 	fmt.Print("\nEnter password to authenticate: \n")
 	pwd, err := term.ReadPassword(int(os.Stdin.Fd()))
 
