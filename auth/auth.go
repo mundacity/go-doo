@@ -77,6 +77,24 @@ func Authenticate(keyPath, userPasswordHash string, handlerFunc func(w http.Resp
 
 }
 
+func RequestAuthentication(r *http.Request, keyPath, userPw string) error {
+
+	pub, err := GetPublicKey(keyPath)
+	if err != nil {
+		return err
+	}
+
+	encryptedPw, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, pub, []byte(userPw), []byte(""))
+	if err != nil {
+		return err
+	}
+
+	s := base64.StdEncoding.EncodeToString(encryptedPw)
+
+	r.Header.Set("Auth", s)
+	return nil
+}
+
 func getPrivateKey(keyPath string) (*rsa.PrivateKey, error) {
 
 	// get file contents
@@ -98,20 +116,20 @@ func getPrivateKey(keyPath string) (*rsa.PrivateKey, error) {
 	}
 }
 
-func GetPublicKey(keyPath string) (string, error) {
+func GetPublicKey(keyPath string) (*rsa.PublicKey, error) {
 	// get file contents
 	contents, err := os.ReadFile(keyPath)
 	if err != nil {
-		return "", errors.New("failed to retrieve key")
+		return nil, errors.New("failed to retrieve key")
 	}
 
 	for {
 
 		block, rest := pem.Decode(contents)
 		if block.Type == "PUBLIC KEY" {
-			_, err := x509.ParsePKIXPublicKey(block.Bytes)
+			k, err := x509.ParsePKIXPublicKey(block.Bytes)
 			if err == nil {
-				return string(block.Bytes), nil
+				return k.(*rsa.PublicKey), nil
 			}
 		}
 
@@ -168,14 +186,14 @@ func ValidateJwt(keyPath string, handlerFunc func(w http.ResponseWriter, r *http
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header["Token"] == nil || r.Header["Token"][0] == "" {
-			http.Error(w, "unauthorised", http.StatusUnauthorized)
+			http.Error(w, "missing header/s", http.StatusBadRequest)
 			return
 		}
 
 		token, err := jwt.Parse(r.Header["Token"][0], func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				http.Error(w, "unauthorised", http.StatusUnauthorized)
-				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+				return nil, errors.New("unexpected signing method")
 			}
 
 			k, err := getPrivateKey(keyPath)
@@ -193,12 +211,15 @@ func ValidateJwt(keyPath string, handlerFunc func(w http.ResponseWriter, r *http
 
 			return pemdata, nil
 		})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+		}
 
 		if _, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			handlerFunc(w, r)
 			return
 		} else {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			http.Error(w, "invalid", http.StatusUnauthorized)
 		}
 
 	})

@@ -137,14 +137,24 @@ func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("request generation error: %v", err), runtime.Caller)
 		return err
 	}
-	rq.Header.Set("content-type", "application/json")
 
-	resp, err := aCmd.conf.Client.Do(rq)
+	rq.Header.Set("content-type", "application/json")
+	rq.Header.Set("Token", aCmd.conf.JwtString)
+
+	resp, err := sendRequest(rq, &aCmd.conf.Client)
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		jwt, err := checkAuthorisation(aCmd.conf.RemoteUrl, aCmd.conf.SrvPublicKeyPath, &aCmd.conf.Client)
+		if jwt != "" && err != nil {
+			aCmd.conf.JwtString = jwt
+			return err
+		}
+	}
 
 	var i int64
 

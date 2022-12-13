@@ -260,14 +260,24 @@ func (eCmd *EditCommand) remoteEdit(w io.Writer, srchFq, edtFq godoo.FullUserQue
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("request generation error: %v", err), runtime.Caller)
 		return err
 	}
-	rq.Header.Set("content-type", "application/json")
 
-	resp, err := eCmd.conf.Client.Do(rq)
+	rq.Header.Set("content-type", "application/json")
+	rq.Header.Set("Token", eCmd.conf.JwtString)
+
+	resp, err := sendRequest(rq, &eCmd.conf.Client)
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		jwt, err := checkAuthorisation(eCmd.conf.RemoteUrl, eCmd.conf.SrvPublicKeyPath, &eCmd.conf.Client)
+		if jwt != "" && err != nil {
+			eCmd.conf.JwtString = jwt
+			return err
+		}
+	}
 
 	var i int
 

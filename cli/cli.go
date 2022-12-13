@@ -11,6 +11,7 @@ import (
 	"time"
 
 	godoo "github.com/mundacity/go-doo"
+	"github.com/mundacity/go-doo/auth"
 	lg "github.com/mundacity/quick-logger"
 	"golang.org/x/term"
 )

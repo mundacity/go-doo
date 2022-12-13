@@ -30,7 +30,7 @@ func (a *FakeAppContext) SetupCliContext(args []string) {
 	a.Config.MaxLen = 2000
 	a.Config.IntDigits = 4
 	a.Config.TagDelim = "*"
-	a.Config.Instance = 0
+	a.Config.Instance = 1
 	a.Config.DateLayout = "2006-01-02"
 
 	n := time.Date(2022, 03, 14, 0, 0, 0, 0, time.UTC)

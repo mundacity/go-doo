@@ -210,19 +210,25 @@ func (gCmd *GetCommand) remoteGet(w io.Writer, fq godoo.FullUserQuery) error {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("request generation error: %v", err), runtime.Caller)
 		return err
 	}
+
 	rq.Header.Set("content-type", "application/json")
-
-	//key, _ := auth.GetPublicKey(gCmd.conf.SrvPublicKeyPath)
-
 	rq.Header.Set("Token", gCmd.conf.JwtString)
 
 	// getting response
-	resp, err := gCmd.conf.Client.Do(rq)
+	resp, err := sendRequest(rq, &gCmd.conf.Client)
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		jwt, err := checkAuthorisation(gCmd.conf.RemoteUrl, gCmd.conf.SrvPublicKeyPath, &gCmd.conf.Client)
+		if jwt != "" && err != nil {
+			gCmd.conf.JwtString = jwt
+			return err
+		}
+	}
 
 	var itms []godoo.TodoItem
 	d := json.NewDecoder(resp.Body)

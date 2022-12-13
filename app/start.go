@@ -32,6 +32,14 @@ func RunCliApp(args []string, w io.Writer) int {
 	}
 
 	err = cmd.Run(w)
+	_, ok := err.(*cli.ReAuthenticationRequired)
+	if ok {
+		err = nil
+		viper.Set("JWT_STRING", cli.CliContext.(*CliContext).Config.JwtString)
+		viper.WriteConfig()
+		err = cmd.Run(w)
+	}
+
 	if err != nil {
 		fmt.Printf("error: '%v'", err)
 		return 2
@@ -96,6 +104,7 @@ func SetConfigVals() {
 	viper.SetDefault("LOG_FILE_PATH", "godoo-logs")
 	viper.SetDefault("MAINTAIN_PRIORITY_LIST", true)
 	viper.SetDefault("SRV_PUBLIC_KEY_PATH", "")
+	viper.SetDefault("JWT_STRING", "")
 
 	viper.SetConfigName("example-client-env")
 	viper.SetConfigType("env")
