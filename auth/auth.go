@@ -159,34 +159,11 @@ func generateJWT(key *rsa.PrivateKey) (string, error) {
 
 }
 
-func ValidateToken(tokenString, keyPath string) error {
-
-	token, err := jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-		}
-
-		k, err := getPrivateKey(keyPath)
-		if err != nil {
-			return nil, errors.New("key retrieval error")
-		}
-
-		return k, nil
-	})
-
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		fmt.Println(claims["foo"], claims["nbf"])
-	} else {
-		fmt.Println(err)
-	}
-	return nil
-}
-
 func ValidateJwt(keyPath string, handlerFunc func(w http.ResponseWriter, r *http.Request)) http.HandlerFunc {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header["Token"] == nil || r.Header["Token"][0] == "" {
-			http.Error(w, "missing header/s", http.StatusBadRequest)
+			http.Error(w, "unauthorised", http.StatusUnauthorized)
 			return
 		}
 

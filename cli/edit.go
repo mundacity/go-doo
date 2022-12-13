@@ -228,6 +228,10 @@ func (eCmd *EditCommand) BuildItemFromInput() (godoo.TodoItem, error) {
 	return *ret, nil
 }
 
+func (eCmd *EditCommand) CheckConfig() *godoo.ConfigVals {
+	return eCmd.conf
+}
+
 func convertPriority(s string) (godoo.PriorityLevel, error) {
 	sl := strings.ToLower(s)
 	switch sl {
@@ -261,23 +265,11 @@ func (eCmd *EditCommand) remoteEdit(w io.Writer, srchFq, edtFq godoo.FullUserQue
 		return err
 	}
 
-	rq.Header.Set("content-type", "application/json")
-	rq.Header.Set("Token", eCmd.conf.JwtString)
-
-	resp, err := sendRequest(rq, &eCmd.conf.Client)
+	resp, err := remoteRun(rq, eCmd)
 	if err != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusUnauthorized {
-		jwt, err := checkAuthorisation(eCmd.conf.RemoteUrl, eCmd.conf.SrvPublicKeyPath, &eCmd.conf.Client)
-		if jwt != "" && err != nil {
-			eCmd.conf.JwtString = jwt
-			return err
-		}
-	}
 
 	var i int
 

@@ -30,6 +30,11 @@ const (
 	high     priorityMode = "h"
 )
 
+// for running remote operations
+type ConfigChecker interface {
+	CheckConfig() *godoo.ConfigVals
+}
+
 // if user is using a date range, get the upper bound of that range
 func getUpperDateBound(dateText string, dateLayout string) time.Time {
 	splt := splitDates(dateText)
@@ -44,6 +49,29 @@ func getUpperDateBound(dateText string, dateLayout string) time.Time {
 
 func splitDates(s string) []string {
 	return strings.Split(s, ":")
+}
+
+func remoteRun(r *http.Request, checker ConfigChecker) (*http.Response, error) {
+
+	c := checker.CheckConfig()
+
+	r.Header.Set("content-type", "application/json")
+	r.Header.Set("Token", c.JwtString)
+
+	rsp, err := sendRequest(r, &c.Client)
+	if err != nil {
+		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
+		return rsp, err
+	}
+
+	if rsp.StatusCode == http.StatusUnauthorized {
+		jwt, err := checkAuthorisation(c.RemoteUrl, c.SrvPublicKeyPath, &c.Client)
+		if jwt != "" && err != nil {
+			c.JwtString = jwt
+			return rsp, err
+		}
+	}
+	return rsp, nil
 }
 
 func sendRequest(r *http.Request, c *http.Client) (*http.Response, error) {

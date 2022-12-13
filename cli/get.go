@@ -192,10 +192,13 @@ func (gCmd *GetCommand) DetermineQueryType(qType godoo.QueryType) ([]godoo.UserQ
 	return ret, nil
 }
 
+func (gCmd *GetCommand) CheckConfig() *godoo.ConfigVals {
+	return gCmd.conf
+}
+
 // Coordinates request/response in remote mode
 func (gCmd *GetCommand) remoteGet(w io.Writer, fq godoo.FullUserQuery) error {
 
-	// --> very happy path; need to test
 	baseUrl := gCmd.conf.RemoteUrl + "/get"
 
 	// building request
@@ -211,24 +214,11 @@ func (gCmd *GetCommand) remoteGet(w io.Writer, fq godoo.FullUserQuery) error {
 		return err
 	}
 
-	rq.Header.Set("content-type", "application/json")
-	rq.Header.Set("Token", gCmd.conf.JwtString)
-
-	// getting response
-	resp, err := sendRequest(rq, &gCmd.conf.Client)
+	resp, err := remoteRun(rq, gCmd)
 	if err != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusUnauthorized {
-		jwt, err := checkAuthorisation(gCmd.conf.RemoteUrl, gCmd.conf.SrvPublicKeyPath, &gCmd.conf.Client)
-		if jwt != "" && err != nil {
-			gCmd.conf.JwtString = jwt
-			return err
-		}
-	}
 
 	var itms []godoo.TodoItem
 	d := json.NewDecoder(resp.Body)
