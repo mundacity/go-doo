@@ -45,7 +45,7 @@ type TodoItem struct {
 	IsComplete   bool                `json:"isComplete"`
 	ChildItems   map[int]struct{}    `json:"children"` // map of TodoItem.id with empty struct
 	Tags         map[string]struct{} `json:"tags"`
-	Index        int                 // for the implementation of a priority list
+	index        int                 // for the implementation of a priority list
 }
 
 // NewTodoItem constructor initialises maps

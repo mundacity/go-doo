@@ -59,9 +59,9 @@ func (pl *PriorityList) Update(itm *TodoItem) error {
 		return &ItemIdNotFoundError{}
 	}
 
-	itm.Index = oldItm.Index
+	itm.index = oldItm.index
 	pl.List.Items[itm.Id] = itm
-	heap.Fix(&pl.List, itm.Index)
+	heap.Fix(&pl.List, itm.index)
 	return nil
 }
 
