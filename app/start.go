@@ -6,7 +6,7 @@ import (
 
 	godoo "github.com/mundacity/go-doo"
 	"github.com/mundacity/go-doo/cli"
-	"github.com/mundacity/go-doo/sqlite"
+	"github.com/mundacity/go-doo/db"
 	lg "github.com/mundacity/quick-logger"
 	"github.com/spf13/viper"
 )
@@ -32,6 +32,14 @@ func RunCliApp(args []string, w io.Writer) int {
 	}
 
 	err = cmd.Run(w)
+	_, ok := err.(*cli.ReAuthenticationRequired)
+	if ok {
+		err = nil
+		viper.Set("JWT_STRING", cli.CliContext.(*CliContext).Config.JwtString)
+		viper.WriteConfig()
+		err = cmd.Run(w)
+	}
+
 	if err != nil {
 		fmt.Printf("error: '%v'", err)
 		return 2
@@ -59,10 +67,16 @@ func GetSrvConfig() godoo.ServerConfigVals {
 	cn := getConn() //just a path on the server
 	dl := viper.GetString("DATETIME_FORMAT")
 	port := viper.GetInt("SERVER_PORT")
+	keyPath := viper.GetString("KEY_PATH")
+	pHash := viper.GetString("USER_PASSWORD_HASH")
+	exp := viper.GetInt("JWT_EXPIRATION_HOURS")
 
 	cf.Conn = cn
 	cf.DateFormat = dl
 	cf.Port = port
+	cf.KeyPath = keyPath
+	cf.UserPasswordHash = pHash
+	cf.ExpirationLimit = exp
 
 	startLogger("srv application started")
 
@@ -89,11 +103,13 @@ func SetConfigVals() {
 	viper.SetDefault("BASE_URL", "http://localhost")
 	viper.SetDefault("LOG_FILE_PATH", "godoo-logs")
 	viper.SetDefault("MAINTAIN_PRIORITY_LIST", true)
+	viper.SetDefault("SRV_PUBLIC_KEY_PATH", "")
+	viper.SetDefault("JWT_STRING", "")
 
-	viper.SetConfigName("env-cli")
+	viper.SetConfigName("example-client-env")
 	viper.SetConfigType("env")
 	viper.AddConfigPath(".")
-	viper.AddConfigPath("C://fe")
+	viper.AddConfigPath("~/")
 	viper.ReadInConfig()
 }
 
@@ -141,7 +157,7 @@ func getRepo(dbKind godoo.DbType, connStr, dateLayout string, port int) godoo.IR
 	lg.Logger.Logf(lg.Info, "Port: %v", port)
 	switch dbKind {
 	case godoo.Sqlite:
-		return sqlite.SetupRepo(connStr, dbKind, dateLayout, port)
+		return db.SetupRepo(connStr, dbKind, dateLayout, port)
 	}
 
 	lg.Logger.Log(lg.Warning, "repo wasn't set up properly")

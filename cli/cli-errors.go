@@ -19,3 +19,9 @@ type InvalidArgumentError struct{}
 func (i *InvalidArgumentError) Error() string {
 	return "argument not allowed"
 }
+
+type ReAuthenticationRequired struct{}
+
+func (n *ReAuthenticationRequired) Error() string {
+	return "had to reauthenticate"
+}

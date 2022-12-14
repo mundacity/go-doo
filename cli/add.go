@@ -40,19 +40,6 @@ func NewAddCommand(config *godoo.ConfigVals) *AddCommand {
 	return &addCmd
 }
 
-// Describes the flags and argument types associated with the command
-func (aCmd *AddCommand) setupFlagSet() {
-
-	aCmd.fs = flag.NewFlagSet("add", flag.ContinueOnError)
-
-	aCmd.fs.StringVar((*string)(&aCmd.mode), strings.Trim(string(godoo.Mode), "-"), string(none), "mode of operation: deadline, priority, none (default)")
-	aCmd.fs.StringVar(&aCmd.body, strings.Trim(string(godoo.Body), "-"), "", "main content of the todo item")
-	aCmd.fs.StringVar(&aCmd.tagInput, strings.Trim(string(godoo.Tag), "-"), "", "tag(s) added with/to the new item")
-	aCmd.fs.IntVar(&aCmd.childOf, strings.Trim(string(godoo.Child), "-"), 0, "make item a child of another item")
-	aCmd.fs.IntVar(&aCmd.parentOf, strings.Trim(string(godoo.Parent), "-"), 0, "make item a parent of another item")
-	aCmd.fs.StringVar(&aCmd.deadlineDate, strings.Trim(string(godoo.Date), "-"), "", "when item needs to be completed by")
-}
-
 // ParseInput implements method from ICommand interface
 func (aCmd *AddCommand) ParseInput() error {
 	newArgs, err := aCmd.conf.Parser.ParseUserInput()
@@ -90,27 +77,16 @@ func (aCmd *AddCommand) Run(w io.Writer) error {
 
 // Populates a godoo.TodoItem with user-supplied data for transer to database
 func (aCmd *AddCommand) BuildItemFromInput() (godoo.TodoItem, error) {
+
 	var td godoo.TodoItem
 
 	if len(aCmd.deadlineDate) > 0 {
 		aCmd.mode = deadline
 	}
 
-	switch aCmd.mode {
-	case low:
-		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.Low))
-	case medium:
-		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.Medium))
-	case high:
-		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.High))
-	case deadline:
-		td = *godoo.NewTodoItem(godoo.WithDateBasedPriority(aCmd.deadlineDate, aCmd.conf.DateLayout))
-		d, _ := time.Parse(aCmd.conf.DateLayout, aCmd.deadlineDate)
-		td.Deadline = d
-	case none:
-		td = *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
-	default:
-		return td, &InvalidArgumentError{}
+	td, err := getItemWithPriority(*aCmd)
+	if err != nil {
+		return td, err
 	}
 
 	td.Body = aCmd.body
@@ -121,9 +97,12 @@ func (aCmd *AddCommand) BuildItemFromInput() (godoo.TodoItem, error) {
 	return td, nil
 }
 
+func (aCmd *AddCommand) CheckConfig() *godoo.ConfigVals {
+	return aCmd.conf
+}
+
 func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
 
-	// --> very happy path; need to test
 	baseUrl := aCmd.conf.RemoteUrl + "/add"
 
 	body, err := json.Marshal(td)
@@ -137,11 +116,9 @@ func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("request generation error: %v", err), runtime.Caller)
 		return err
 	}
-	rq.Header.Set("content-type", "application/json")
 
-	resp, err := aCmd.conf.Client.Do(rq)
+	resp, err := remoteRun(rq, aCmd)
 	if err != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err
 	}
 	defer resp.Body.Close()
@@ -152,12 +129,26 @@ func (aCmd *AddCommand) remoteAdd(w io.Writer, td godoo.TodoItem) error {
 	d.DisallowUnknownFields()
 	if err = d.Decode(&i); err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("json decoding error: %v", err), runtime.Caller)
+		return err
 	}
 
 	printAddMessage(int(i), w)
 	lg.Logger.Log(lg.Info, "remote item successfully added")
 
 	return nil
+}
+
+// Describes the flags and argument types associated with the command
+func (aCmd *AddCommand) setupFlagSet() {
+
+	aCmd.fs = flag.NewFlagSet("add", flag.ContinueOnError)
+
+	aCmd.fs.StringVar((*string)(&aCmd.mode), strings.Trim(string(godoo.Mode), "-"), string(none), "mode of operation: deadline, priority, none (default)")
+	aCmd.fs.StringVar(&aCmd.body, strings.Trim(string(godoo.Body), "-"), "", "main content of the todo item")
+	aCmd.fs.StringVar(&aCmd.tagInput, strings.Trim(string(godoo.Tag), "-"), "", "tag(s) added with/to the new item")
+	aCmd.fs.IntVar(&aCmd.childOf, strings.Trim(string(godoo.Child), "-"), 0, "make item a child of another item")
+	aCmd.fs.IntVar(&aCmd.parentOf, strings.Trim(string(godoo.Parent), "-"), 0, "make item a parent of another item")
+	aCmd.fs.StringVar(&aCmd.deadlineDate, strings.Trim(string(godoo.Date), "-"), "", "when item needs to be completed by")
 }
 
 // helper to parse delimited tag input;
@@ -168,5 +159,24 @@ func parseTagInput(td *godoo.TodoItem, input, delim string) {
 		for _, t := range tgs {
 			td.Tags[t] = struct{}{}
 		}
+	}
+}
+
+// returns a new ToDoItem based on priority level
+func getItemWithPriority(aCmd AddCommand) (godoo.TodoItem, error) {
+
+	switch aCmd.mode {
+	case low:
+		return *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.Low)), nil
+	case medium:
+		return *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.Medium)), nil
+	case high:
+		return *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.High)), nil
+	case deadline:
+		return *godoo.NewTodoItem(godoo.WithDateBasedPriority(aCmd.deadlineDate, aCmd.conf.DateLayout)), nil
+	case none:
+		return *godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None)), nil
+	default:
+		return godoo.TodoItem{}, &InvalidArgumentError{}
 	}
 }

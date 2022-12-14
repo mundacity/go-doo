@@ -14,6 +14,8 @@ type Handler struct {
 	Repo         godoo.IRepository
 	PriorityList *godoo.PriorityList
 	priorityMode bool
+	path         string
+	pwHash       string
 }
 
 // Returns a new http handler. If runPl is true, then the handler will
@@ -21,6 +23,8 @@ type Handler struct {
 func NewHandler(ct godoo.ServerConfigVals) *Handler {
 
 	h := &Handler{Repo: ct.Repo}
+	h.path = ct.KeyPath
+	h.pwHash = ct.UserPasswordHash
 
 	if ct.RunPriorityList {
 		h.priorityMode = true
@@ -71,6 +75,10 @@ func (h *Handler) HandleRequests(w http.ResponseWriter, r *http.Request) {
 		lg.Logger.LogWithCallerInfo(lg.Error, "method not allowed", runtime.Caller)
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+func (h *Handler) AuthHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {

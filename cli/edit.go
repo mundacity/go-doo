@@ -228,6 +228,10 @@ func (eCmd *EditCommand) BuildItemFromInput() (godoo.TodoItem, error) {
 	return *ret, nil
 }
 
+func (eCmd *EditCommand) CheckConfig() *godoo.ConfigVals {
+	return eCmd.conf
+}
+
 func convertPriority(s string) (godoo.PriorityLevel, error) {
 	sl := strings.ToLower(s)
 	switch sl {
@@ -260,11 +264,9 @@ func (eCmd *EditCommand) remoteEdit(w io.Writer, srchFq, edtFq godoo.FullUserQue
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("request generation error: %v", err), runtime.Caller)
 		return err
 	}
-	rq.Header.Set("content-type", "application/json")
 
-	resp, err := eCmd.conf.Client.Do(rq)
+	resp, err := remoteRun(rq, eCmd)
 	if err != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err
 	}
 	defer resp.Body.Close()

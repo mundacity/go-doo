@@ -35,6 +35,8 @@ func (ac *CliContext) SetupCliContext(args []string) {
 	ac.Config.Instance = godoo.InstanceType(viper.GetInt("INSTANCE_TYPE"))
 	ac.Config.DateLayout = viper.GetString("DATETIME_FORMAT")
 	ac.Config.NowString = util.StringFromDate(time.Now())
+	ac.Config.SrvPublicKeyPath = viper.GetString("SRV_PUBLIC_KEY_PATH")
+	ac.Config.JwtString = viper.GetString("JWT_STRING")
 
 	startLogger("cli application started...")
 	ac.SetupFlagParser()

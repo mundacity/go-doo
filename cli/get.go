@@ -192,10 +192,13 @@ func (gCmd *GetCommand) DetermineQueryType(qType godoo.QueryType) ([]godoo.UserQ
 	return ret, nil
 }
 
+func (gCmd *GetCommand) CheckConfig() *godoo.ConfigVals {
+	return gCmd.conf
+}
+
 // Coordinates request/response in remote mode
 func (gCmd *GetCommand) remoteGet(w io.Writer, fq godoo.FullUserQuery) error {
 
-	// --> very happy path; need to test
 	baseUrl := gCmd.conf.RemoteUrl + "/get"
 
 	// building request
@@ -210,12 +213,9 @@ func (gCmd *GetCommand) remoteGet(w io.Writer, fq godoo.FullUserQuery) error {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("request generation error: %v", err), runtime.Caller)
 		return err
 	}
-	rq.Header.Set("content-type", "application/json")
 
-	// getting response
-	resp, err := gCmd.conf.Client.Do(rq)
+	resp, err := remoteRun(rq, gCmd)
 	if err != nil {
-		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("error receiving response: %v", err), runtime.Caller)
 		return err
 	}
 	defer resp.Body.Close()

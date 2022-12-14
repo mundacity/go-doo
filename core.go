@@ -45,27 +45,32 @@ type IFlagParser interface {
 }
 
 type ConfigVals struct {
-	Args       []string
-	Client     http.Client
-	TodoRepo   IRepository
-	Instance   InstanceType
-	RemoteUrl  string
-	DateLayout string
-	NowString  string
-	Conn       string
-	MaxLen     int
-	IntDigits  int
-	TagDelim   string
-	Parser     IFlagParser
+	Args             []string
+	Client           http.Client
+	TodoRepo         IRepository
+	Instance         InstanceType
+	RemoteUrl        string
+	DateLayout       string
+	NowString        string
+	Conn             string
+	MaxLen           int
+	IntDigits        int
+	TagDelim         string
+	Parser           IFlagParser
+	SrvPublicKeyPath string
+	JwtString        string
 }
 
 type ServerConfigVals struct {
-	Repo            IRepository
-	Conn            string
-	DateFormat      string
-	PriorityList    *PriorityList
-	RunPriorityList bool
-	Port            int
+	Repo             IRepository
+	Conn             string
+	DateFormat       string
+	PriorityList     *PriorityList
+	RunPriorityList  bool
+	Port             int
+	KeyPath          string
+	UserPasswordHash string
+	ExpirationLimit  int
 }
 
 // Flags used throughout the system
