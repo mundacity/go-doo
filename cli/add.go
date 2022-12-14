@@ -90,7 +90,7 @@ func (aCmd *AddCommand) BuildItemFromInput() (godoo.TodoItem, error) {
 	}
 
 	td.Body = aCmd.body
-	td.CreationDate, _ = time.Parse(aCmd.conf.DateLayout, aCmd.conf.DateLayout)
+	td.CreationDate = time.Now()
 	td.ParentId = aCmd.childOf
 
 	parseTagInput(&td, aCmd.tagInput, aCmd.conf.TagDelim)
