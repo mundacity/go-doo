@@ -18,6 +18,22 @@ const (
 	DateBased
 )
 
+func (p PriorityLevel) String() string {
+	switch p {
+
+	case Low:
+		return "low"
+	case Medium:
+		return "medium"
+	case High:
+		return "high"
+	case DateBased:
+		return "deadline"
+	default:
+		return "none"
+	}
+}
+
 type TodoItem struct {
 	Id           int                 `json:"itemId"`
 	ParentId     int                 `json:"parentId"`
