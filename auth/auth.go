@@ -17,8 +17,31 @@ import (
 	lg "github.com/mundacity/quick-logger"
 )
 
-// authenticate user and generate jwt
-func Authenticate(keyPath, userPasswordHash string, handlerFunc func(w http.ResponseWriter, r *http.Request)) http.HandlerFunc { //(string, error) {
+type InvalidDurationError struct{}
+
+func (e *InvalidDurationError) Error() string {
+	return "duration 1 or less"
+}
+
+type AuthConfig struct {
+	keyPath       string
+	passwordHash  string
+	durationHours int
+	keyFunc       func(string) (*rsa.PrivateKey, error)
+}
+
+func NewAuthConfig(path, pwHash string, duration int) *AuthConfig {
+	return &AuthConfig{
+		keyPath:       path,
+		passwordHash:  pwHash,
+		durationHours: duration,
+		keyFunc:       getPrivateKey,
+	}
+}
+
+// Authenticate checks the request for an encoded password hash in {conf}. If the hash
+// matches, a JWT is generated to give access for a duration specified in {conf}
+func Authenticate(conf *AuthConfig, handlerFunc func(w http.ResponseWriter, r *http.Request)) http.HandlerFunc {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// get encrypted password from header
@@ -37,7 +60,7 @@ func Authenticate(keyPath, userPasswordHash string, handlerFunc func(w http.Resp
 			return
 		}
 
-		privateKey, err := getPrivateKey(keyPath)
+		privateKey, err := conf.keyFunc(conf.keyPath)
 		if err != nil {
 			lg.Logger.Log(lg.Error, err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -47,7 +70,6 @@ func Authenticate(keyPath, userPasswordHash string, handlerFunc func(w http.Resp
 		// decrypt clientKey with server private key --> plain text version of user password
 		userPasswordPlainText, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, privateKey, []byte(key), []byte(""))
 		if err != nil {
-			//return "", err //TODO: label needs to be same as that used when encrypting --> add to client
 			lg.Logger.Log(lg.Error, err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -57,11 +79,10 @@ func Authenticate(keyPath, userPasswordHash string, handlerFunc func(w http.Resp
 		h := sha256.New()
 		h.Write(userPasswordPlainText)
 		n := h.Sum(nil)
-		fm := fmt.Sprintf("%x", n)
+		res := fmt.Sprintf("%x", n)
 
-		if fm == userPasswordHash {
-			// then it's me so generate jwt with 8 hour expiry
-			jwt, err := generateJWT(privateKey)
+		if res == conf.passwordHash {
+			jwt, err := generateJWT(privateKey, conf.durationHours)
 			if err != nil {
 				lg.Logger.Log(lg.Error, err.Error())
 				http.Error(w, "jwt generation error", http.StatusInternalServerError)
@@ -74,12 +95,13 @@ func Authenticate(keyPath, userPasswordHash string, handlerFunc func(w http.Resp
 		lg.Logger.Log(lg.Info, msg)
 		http.Error(w, msg, http.StatusInternalServerError)
 	})
-
 }
 
+// RequestAuthentication is called by the client if the first request receives
+// an unauthorised status code
 func RequestAuthentication(r *http.Request, keyPath, userPw string) error {
 
-	pub, err := GetPublicKey(keyPath)
+	pub, err := getPublicKey(keyPath)
 	if err != nil {
 		return err
 	}
@@ -116,7 +138,7 @@ func getPrivateKey(keyPath string) (*rsa.PrivateKey, error) {
 	}
 }
 
-func GetPublicKey(keyPath string) (*rsa.PublicKey, error) {
+func getPublicKey(keyPath string) (*rsa.PublicKey, error) {
 	// get file contents
 	contents, err := os.ReadFile(keyPath)
 	if err != nil {
@@ -137,11 +159,15 @@ func GetPublicKey(keyPath string) (*rsa.PublicKey, error) {
 	}
 }
 
-func generateJWT(key *rsa.PrivateKey) (string, error) {
+func generateJWT(key *rsa.PrivateKey, dur int) (string, error) {
+
+	if dur < 1 {
+		return "", &InvalidDurationError{}
+	}
 
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
-	claims["exp"] = time.Now().Add(time.Hour * 8).Unix()
+	claims["exp"] = time.Now().Add(time.Hour * time.Duration(dur)).Unix()
 
 	bs, _ := x509.MarshalPKCS8PrivateKey(key)
 	pemdata := pem.EncodeToMemory(
@@ -156,7 +182,6 @@ func generateJWT(key *rsa.PrivateKey) (string, error) {
 		return "", err
 	}
 	return tokenStr, nil
-
 }
 
 func ValidateJwt(keyPath string, handlerFunc func(w http.ResponseWriter, r *http.Request)) http.HandlerFunc {
