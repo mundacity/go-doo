@@ -170,7 +170,7 @@ func _runEditTest(t *testing.T, tc edit_item_generation_test_case) {
 
 func runQueryBuildTests(t *testing.T, tc edit_query_build_test_case) {
 	gotSrchLst, _ := tc.input.DetermineQueryType(godoo.Get)
-	gotEdtList, _ := tc.input.DetermineQueryType(godoo.Update)
+	gotEdtList, _ := tc.input.DetermineQueryType(godoo.Edit)
 
 	gotSrchItm, _ := tc.input.BuildItemFromInput()
 	tc.input.getNewVals = true

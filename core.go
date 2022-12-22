@@ -115,9 +115,24 @@ type QueryType int
 const (
 	Add QueryType = iota
 	Get
-	Update
+	Edit
 	Delete
 )
+
+func (q QueryType) String() string {
+	switch q {
+	case Add:
+		return "add"
+	case Get:
+		return "get"
+	case Edit:
+		return "edit"
+	case Delete:
+		return "delete"
+	default:
+		return ""
+	}
+}
 
 // Enums describing the different item
 // attributes that the user can query & edit

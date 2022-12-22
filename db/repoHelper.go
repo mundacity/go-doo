@@ -14,7 +14,7 @@ func getSql(qType godoo.QueryType, dbKind godoo.DbType, tbl table) string {
 		return getInsertSql(dbKind, tbl)
 	case godoo.Get:
 		return getSelectSql(dbKind, tbl)
-	case godoo.Update:
+	case godoo.Edit:
 		return getBaseUpdateSql(dbKind, tbl)
 	default:
 		return ""

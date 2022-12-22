@@ -118,7 +118,7 @@ func (r *Repo) Add(itm *godoo.TodoItem) (int64, error) {
 
 func (r *Repo) UpdateWhere(srchQry, edtQry godoo.FullUserQuery) (int, error) {
 
-	itmSql := getSql(godoo.Update, r.kind, items)
+	itmSql := getSql(godoo.Edit, r.kind, items)
 	//tagSql := "update tags set " // will need to do these separately
 
 	itmSql, data := r.assembleUpdateData(itmSql, srchQry, edtQry)

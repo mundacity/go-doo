@@ -99,7 +99,7 @@ func (eCmd *EditCommand) Run(w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	edtQryLst, err := eCmd.DetermineQueryType(godoo.Update)
+	edtQryLst, err := eCmd.DetermineQueryType(godoo.Edit)
 	if err != nil {
 		return err
 	}
@@ -323,7 +323,7 @@ func (eCmd *EditCommand) DetermineQueryType(qType godoo.QueryType) ([]godoo.User
 
 		lg.Logger.QuickFmtLog(lg.Info, "query options (getting): ", ", ", ret)
 
-	case godoo.Update:
+	case godoo.Edit:
 		if eCmd.newParent != 0 {
 			ret = append(ret, godoo.UserQueryOption{Elem: godoo.ByParentId})
 		}

@@ -22,7 +22,7 @@ type update_data_assembling_test_case struct {
 func getUpdateAssemblingTestCases() []update_data_assembling_test_case {
 
 	return []update_data_assembling_test_case{{
-		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		sql:      getSql(godoo.Edit, godoo.Sqlite, items),
 		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ByDeadline, UpperBoundDate: convertToUpperBound("2022-01-18")}, {Elem: godoo.ByCreationDate, UpperBoundDate: convertToUpperBound("2022-01-03")}, {Elem: godoo.ByBody}},
 		slctr:    godoo.TodoItem{Deadline: parseDate("2022-01-10"), CreationDate: parseDate("2021-12-23"), Body: "z start"},
 		edtOpts:  []godoo.UserQueryOption{{Elem: godoo.ByDeadline}, {Elem: godoo.ByBody}, {Elem: godoo.ByAppending}},
@@ -31,7 +31,7 @@ func getUpdateAssemblingTestCases() []update_data_assembling_test_case {
 		expVals:  []any{"2022-02-02", " dud", "2022-01-10", "2022-01-18", "2021-12-23", "2022-01-03", "%z start%"},
 		name:     "add one day to deadline by id",
 	}, {
-		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		sql:      getSql(godoo.Edit, godoo.Sqlite, items),
 		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ById}},
 		slctr:    godoo.TodoItem{Id: 18},
 		edtOpts:  []godoo.UserQueryOption{{Elem: godoo.ByDeadline}},
@@ -40,7 +40,7 @@ func getUpdateAssemblingTestCases() []update_data_assembling_test_case {
 		expVals:  []any{"2022-06-02", 18},
 		name:     "add one day to deadline by id",
 	}, {
-		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		sql:      getSql(godoo.Edit, godoo.Sqlite, items),
 		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ByCreationDate}, {Elem: godoo.ByDeadline, UpperBoundDate: convertToUpperBound("2022-06-22")}},
 		slctr:    godoo.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01")},
 		edtOpts:  []godoo.UserQueryOption{{Elem: godoo.ByCompletion}},
@@ -49,7 +49,7 @@ func getUpdateAssemblingTestCases() []update_data_assembling_test_case {
 		expVals:  []any{"2022-06-01", "2022-06-10", "2022-06-22"},
 		name:     "toggle completion search on set creationDate and deadline range",
 	}, {
-		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		sql:      getSql(godoo.Edit, godoo.Sqlite, items),
 		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ByCreationDate, UpperBoundDate: convertToUpperBound("2022-06-05")}, {Elem: godoo.ByDeadline, UpperBoundDate: convertToUpperBound("2022-06-22")}},
 		slctr:    godoo.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01")},
 		edtOpts:  []godoo.UserQueryOption{{Elem: godoo.ByCompletion}},
@@ -58,7 +58,7 @@ func getUpdateAssemblingTestCases() []update_data_assembling_test_case {
 		expVals:  []any{"2022-06-01", "2022-06-05", "2022-06-10", "2022-06-22"},
 		name:     "toggle completion search on creationDate range and deadline range",
 	}, {
-		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		sql:      getSql(godoo.Edit, godoo.Sqlite, items),
 		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ByCreationDate}, {Elem: godoo.ByDeadline}},
 		slctr:    godoo.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01")},
 		edtOpts:  []godoo.UserQueryOption{{Elem: godoo.ByCompletion}},
@@ -67,7 +67,7 @@ func getUpdateAssemblingTestCases() []update_data_assembling_test_case {
 		expVals:  []any{"2022-06-01", "2022-06-10"},
 		name:     "toggle completion search set creationDate and set deadline",
 	}, {
-		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		sql:      getSql(godoo.Edit, godoo.Sqlite, items),
 		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ByCreationDate}, {Elem: godoo.ByDeadline}, {Elem: godoo.ByBody}},
 		slctr:    godoo.TodoItem{Deadline: parseDate("2022-06-10"), CreationDate: parseDate("2022-06-01"), Body: "key phrase"},
 		edtOpts:  []godoo.UserQueryOption{{Elem: godoo.ByBody}, {Elem: godoo.ByAppending}},
@@ -76,7 +76,7 @@ func getUpdateAssemblingTestCases() []update_data_assembling_test_case {
 		expVals:  []any{"new body", "2022-06-01", "2022-06-10", "%key phrase%"},
 		name:     "append to body search set creationDate set deadline and body",
 	}, {
-		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		sql:      getSql(godoo.Edit, godoo.Sqlite, items),
 		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ByBody}, {Elem: godoo.ByParentId}},
 		slctr:    godoo.TodoItem{Body: "key phrase", ParentId: 8},
 		edtOpts:  []godoo.UserQueryOption{{Elem: godoo.ByBody}, {Elem: godoo.ByAppending}, {Elem: godoo.ByParentId}},
@@ -85,7 +85,7 @@ func getUpdateAssemblingTestCases() []update_data_assembling_test_case {
 		expVals:  []any{"new body", 12, "%key phrase%", 8},
 		name:     "append to body change parent search body and parent",
 	}, {
-		sql:      getSql(godoo.Update, godoo.Sqlite, items),
+		sql:      getSql(godoo.Edit, godoo.Sqlite, items),
 		srchOpts: []godoo.UserQueryOption{{Elem: godoo.ByBody}, {Elem: godoo.ByParentId}},
 		slctr:    godoo.TodoItem{Body: "key phrase", ParentId: 8},
 		edtOpts:  []godoo.UserQueryOption{{Elem: godoo.ByBody}, {Elem: godoo.ByReplacement}, {Elem: godoo.ByParentId}},
