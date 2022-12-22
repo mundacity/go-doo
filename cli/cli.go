@@ -101,8 +101,13 @@ func authenticateUser(pubKeyPath string, c *http.Client, r *http.Request) (strin
 	if err != nil {
 		return "", err
 	}
-	auth.RequestAuthentication(r, pubKeyPath, pw)
 
+	h, err := auth.RequestAuthentication(pubKeyPath, pw)
+	if err != nil {
+		return "", err
+	}
+
+	r.Header.Set("Auth", h)
 	rsp, err := sendRequest(r, c)
 
 	if err != nil {

@@ -99,22 +99,20 @@ func Authenticate(conf *AuthConfig, handlerFunc func(w http.ResponseWriter, r *h
 
 // RequestAuthentication is called by the client if the first request receives
 // an unauthorised status code
-func RequestAuthentication(r *http.Request, keyPath, userPw string) error {
+func RequestAuthentication(keyPath, userPw string) (string, error) {
 
 	pub, err := getPublicKey(keyPath)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	encryptedPw, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, pub, []byte(userPw), []byte(""))
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	s := base64.StdEncoding.EncodeToString(encryptedPw)
-
-	r.Header.Set("Auth", s)
-	return nil
+	return s, nil
 }
 
 func getPrivateKey(keyPath string) (*rsa.PrivateKey, error) {
