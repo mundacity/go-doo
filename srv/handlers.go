@@ -83,8 +83,10 @@ func (h *Handler) AuthHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 
+	defer r.Body.Close()
 	w.Header().Set("content-type", "application/json")
 
+	//parse & validate
 	var td godoo.TodoItem
 	d := json.NewDecoder(r.Body)
 
@@ -97,12 +99,14 @@ func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if td.CreationDate.IsZero() { // only thing that really needs to not be empty
+
+	if td.CreationDate.IsZero() { //only thing that really needs to not be empty
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("bad request: %v", err), runtime.Caller)
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 
+	//handle
 	i, err := h.Repo.Add(&td)
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("server error: %v", err), runtime.Caller)
@@ -117,9 +121,7 @@ func (h *Handler) AddHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(i)
-	lg.Logger.Log(lg.Info, "add handler completed execution")
+	h.respondSuccess(godoo.Add, w, i)
 }
 
 func (h *Handler) GetHandler(w http.ResponseWriter, r *http.Request) {
@@ -151,6 +153,7 @@ func (h *Handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		if done {
 			itms = append(itms, itm)
+			h.respondSuccess(godoo.Get, w, itms)
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(itms)
 			lg.Logger.Logf(lg.Info, "get handler (%v) completed execution", msg)
@@ -166,9 +169,7 @@ func (h *Handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(itms)
-	lg.Logger.Log(lg.Info, "get handler completed execution")
+	h.respondSuccess(godoo.Get, w, itms)
 }
 
 func (h *Handler) handleQueueMode(fq godoo.FullUserQuery) (itm godoo.TodoItem, done bool, logMsg string, err error) {
@@ -255,7 +256,7 @@ func (h *Handler) EditHandler(w http.ResponseWriter, r *http.Request) {
 	if len(fq) != 2 {
 		msg := "operation forbidden; two FullUserQuery structs required"
 		lg.Logger.LogWithCallerInfo(lg.Error, msg, runtime.Caller)
-		http.Error(w, "operation forbidden", http.StatusForbidden)
+		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 
@@ -270,7 +271,11 @@ func (h *Handler) EditHandler(w http.ResponseWriter, r *http.Request) {
 		h.setupPriorityList() //probably inefficient but won't have the full items (just bits to update), so better to just start again
 	}
 
+	h.respondSuccess(godoo.Edit, w, i)
+}
+
+func (h *Handler) respondSuccess(method godoo.QueryType, w http.ResponseWriter, toEncode any) {
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(i)
-	lg.Logger.Log(lg.Info, "edit handler completed execution")
+	json.NewEncoder(w).Encode(toEncode)
+	lg.Logger.Log(lg.Info, fmt.Sprintf("%v handler completed execution", method.String()))
 }

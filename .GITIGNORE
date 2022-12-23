@@ -15,3 +15,6 @@
 # vendor/
 
 *.work
+
+# api test requests
+*.rest
