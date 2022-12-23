@@ -1,20 +1,18 @@
-package main_test
+package godoo
 
 import (
 	"fmt"
 	"testing"
-
-	godoo "github.com/mundacity/go-doo"
 )
 
 type test_case struct {
 	Id   int
-	Item godoo.TodoItem
+	Item TodoItem
 	Name string
 }
 
 func TestValidListCreateion(t *testing.T) {
-	lst := godoo.NewSimpleList()
+	lst := NewSimpleList()
 
 	if lst.List != nil {
 		t.Log("\n\t>>>>PASSED: SimpleList created")
@@ -24,8 +22,8 @@ func TestValidListCreateion(t *testing.T) {
 }
 
 func TestAddToList(t *testing.T) {
-	sl := godoo.NewSimpleList()
-	itm := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
+	sl := NewSimpleList()
+	itm := NewTodoItem(WithPriorityLevel(None))
 	itm.Id = 1
 
 	err := sl.Add(*itm)
@@ -54,7 +52,7 @@ func getListTestCases() []test_case {
 func getSlice(lst []int) []test_case {
 	var tcLst []test_case
 	for i := range lst {
-		td := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
+		td := NewTodoItem(WithPriorityLevel(None))
 		tc := test_case{Id: i, Item: *td, Name: fmt.Sprintf("body from nil to: %v", i)}
 		tcLst = append(tcLst, tc)
 	}
@@ -72,7 +70,7 @@ func TestEditingItmes(t *testing.T) {
 	}
 }
 
-func testEdit(t *testing.T, itm *godoo.TodoItem, newBody string) {
+func testEdit(t *testing.T, itm *TodoItem, newBody string) {
 	old := itm.Body
 	itm.Body = newBody
 
@@ -87,14 +85,14 @@ func TestAddExistingId(t *testing.T) {
 	tcs := getListTestCases()
 	existingId := tcs[0].Id
 
-	pl := godoo.NewPriorityList()
+	pl := NewPriorityList()
 	for _, itm := range tcs {
-		td := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
+		td := NewTodoItem(WithPriorityLevel(None))
 		td.Id = itm.Id
 		pl.Add(*td)
 	}
 
-	td2 := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
+	td2 := NewTodoItem(WithPriorityLevel(None))
 	td2.Id = existingId
 
 	err := pl.Add(*td2)

@@ -1,10 +1,8 @@
-package main_test
+package godoo
 
 import (
 	"fmt"
 	"testing"
-
-	godoo "github.com/mundacity/go-doo"
 )
 
 type testType struct {
@@ -21,9 +19,9 @@ const (
 
 func TestRemoveParent_IsChildShouldBeFalseParentIdShouldBeZero(t *testing.T) {
 
-	itm := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
+	itm := NewTodoItem(WithPriorityLevel(None))
 	itm.Id = 7 // dud value to test reset
-	parent := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.High))
+	parent := NewTodoItem(WithPriorityLevel(High))
 	parent.Id = 10
 	err := itm.RemoveParent(parent)
 
@@ -50,7 +48,7 @@ func TestErrorsForInvalidParentIds(t *testing.T) {
 	ids := []int{-1, -58, -1700}
 	tc := getTestCases(ids, Standard)
 
-	item := new(godoo.TodoItem)
+	item := new(TodoItem)
 
 	for _, c := range tc {
 		t.Run(c.testName, func(t *testing.T) {
@@ -59,9 +57,9 @@ func TestErrorsForInvalidParentIds(t *testing.T) {
 	}
 }
 
-func setInvalidParentIdAndCheckErrors(id int, itm *godoo.TodoItem, t *testing.T) {
+func setInvalidParentIdAndCheckErrors(id int, itm *TodoItem, t *testing.T) {
 	err := itm.SetParent(id)
-	if err == err.(*godoo.NegativeParentIdError) {
+	if err == err.(*NegativeParentIdError) {
 		t.Logf("\n\t>>>>PASSED: error is '%v', expected NegativeParentIdError", err)
 		return
 	}
@@ -73,7 +71,7 @@ func TestIsChildWhenParentIdSet_ValidId(t *testing.T) {
 	idList := []int{1, 72, 350, 1234, 200005, 36, 7004, 18, 999, 100000}
 	tc := getTestCases(idList, Standard)
 
-	item := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
+	item := NewTodoItem(WithPriorityLevel(None))
 
 	for _, c := range tc {
 		t.Run(c.testName, func(t *testing.T) {
@@ -82,7 +80,7 @@ func TestIsChildWhenParentIdSet_ValidId(t *testing.T) {
 	}
 }
 
-func setIdAndCheckIfIsChildBoolTrue(id int, item *godoo.TodoItem, t *testing.T) {
+func setIdAndCheckIfIsChildBoolTrue(id int, item *TodoItem, t *testing.T) {
 	item.SetParent(id)
 	if item.IsChild {
 		t.Logf("\n\t>>>>PASSED: item.IsChild is %v, expected %v", item.IsChild, true)
@@ -114,7 +112,7 @@ func getName(id int, o testOption) string {
 func TestAddChildItem(t *testing.T) {
 	idList := []int{11, 27, 35, 151, 30005, 306, 7004, 18}
 	tc := getTestCases(idList, Chld)
-	itm := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
+	itm := NewTodoItem(WithPriorityLevel(None))
 	itm.Id = 1
 
 	for _, c := range tc {
@@ -124,7 +122,7 @@ func TestAddChildItem(t *testing.T) {
 	}
 }
 
-func addChildIdToChildItemsSlice(t *testing.T, itm *godoo.TodoItem, childId int) {
+func addChildIdToChildItemsSlice(t *testing.T, itm *TodoItem, childId int) {
 	itmCount := len(itm.ChildItems)
 	itm.AddChildItem(childId)
 	expected := itmCount + 1
@@ -145,7 +143,7 @@ func addChildIdToChildItemsSlice(t *testing.T, itm *godoo.TodoItem, childId int)
 }
 
 func TestRemoveChildItem(t *testing.T) {
-	itm := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.None))
+	itm := NewTodoItem(WithPriorityLevel(None))
 	itm.Id = 1
 	valid := 17
 	invalid := 7
@@ -153,7 +151,7 @@ func TestRemoveChildItem(t *testing.T) {
 	itm.AddChildItem(valid)
 
 	err := itm.RemoveChildItem(invalid)
-	if err != err.(*godoo.ItemIdNotFoundError) {
+	if err != err.(*ItemIdNotFoundError) {
 		t.Errorf("\n\t>>>>FAILED: deleted non-existant childItem, err is '%v' expected 'ItemNotFoundError'", err)
 	} else {
 		t.Logf("\n\t>>>>PASSED: couldn't delete non-existant childItem, err is '%v' expected 'ItemNotFoundError'", err)
