@@ -98,10 +98,17 @@ func Authenticate(conf *AuthConfig, handlerFunc func(w http.ResponseWriter, r *h
 }
 
 // RequestAuthentication is called by the client if the first request receives
-// an unauthorised status code
-func RequestAuthentication(keyPath, userPw string) (string, error) {
+// an unauthorised status code.
+//
+// It encrypts <userPw> using the server's public key and returns the encrypted
+// password in base64 encoding
+func RequestAuthentication(keyPath, userPw string, getPubKey func(string) (*rsa.PublicKey, error)) (string, error) {
 
-	pub, err := getPublicKey(keyPath)
+	if getPubKey == nil {
+		getPubKey = getPublicKey
+	}
+
+	pub, err := getPubKey(keyPath)
 	if err != nil {
 		return "", err
 	}
@@ -123,16 +130,20 @@ func getPrivateKey(keyPath string) (*rsa.PrivateKey, error) {
 		return nil, errors.New("failed to retrieve key")
 	}
 
+	return encodePrivateKey(contents)
+}
+
+func encodePrivateKey(input []byte) (*rsa.PrivateKey, error) {
 	for {
 
-		block, rest := pem.Decode(contents)
+		block, rest := pem.Decode(input)
 		if block.Type == "PRIVATE KEY" { // private key should be first so only one loop
 			if k, err := x509.ParsePKCS8PrivateKey(block.Bytes); err == nil {
 				return k.(*rsa.PrivateKey), nil
 			}
 		}
 
-		contents = rest
+		input = rest
 	}
 }
 
@@ -142,10 +153,13 @@ func getPublicKey(keyPath string) (*rsa.PublicKey, error) {
 	if err != nil {
 		return nil, errors.New("failed to retrieve key")
 	}
+	return encodePublicKey([]byte(contents))
+}
 
+func encodePublicKey(input []byte) (*rsa.PublicKey, error) {
 	for {
 
-		block, rest := pem.Decode(contents)
+		block, rest := pem.Decode(input)
 		if block.Type == "PUBLIC KEY" {
 			k, err := x509.ParsePKIXPublicKey(block.Bytes)
 			if err == nil {
@@ -153,7 +167,7 @@ func getPublicKey(keyPath string) (*rsa.PublicKey, error) {
 			}
 		}
 
-		contents = rest
+		input = rest
 	}
 }
 
