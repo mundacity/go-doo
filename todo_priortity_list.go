@@ -2,7 +2,6 @@ package godoo
 
 import (
 	"container/heap"
-	"errors"
 )
 
 // PriorityList is an implementation of ITodoCollection
@@ -51,7 +50,7 @@ func (pl *PriorityList) Delete(id int) error {
 }
 
 // Update existing queue item -
-//ITodoCollection implementation
+// ITodoCollection implementation
 func (pl *PriorityList) Update(itm *TodoItem) error {
 
 	oldItm, exists := pl.List.Items[itm.Id]
@@ -70,7 +69,7 @@ func (pl *PriorityList) Update(itm *TodoItem) error {
 func (pl *PriorityList) GetNext() (*TodoItem, error) {
 
 	if pl.List.Len() == 0 {
-		return nil, errors.New("no items in list")
+		return nil, &PriorityListEmptyError{}
 	}
 
 	itm := heap.Pop(&pl.List)
@@ -87,4 +86,10 @@ func (pl *PriorityList) GetById(id int) (*TodoItem, error) {
 	}
 
 	return td, nil
+}
+
+type PriorityListEmptyError struct{}
+
+func (e *PriorityListEmptyError) Error() string {
+	return "no items in priority list"
 }

@@ -70,6 +70,12 @@ func getTestRequests() []test_request {
 		expectedCode: http.StatusBadRequest,
 		name:         "invalid query to /edit - missing query portion",
 		caseId:       5,
+	}, {
+		method:       http.MethodGet,
+		path:         "/get",
+		expectedCode: http.StatusBadRequest,
+		name:         "priority mode get next empty priority list",
+		caseId:       6,
 	},
 	}
 }
@@ -161,6 +167,13 @@ func getTestBody(id int) any {
 
 		srchFq := godoo.FullUserQuery{QueryOptions: retSch, QueryData: *toEdit}
 		return []godoo.FullUserQuery{srchFq}
+	case 6:
+		td := godoo.NewTodoItem(godoo.WithPriorityLevel(godoo.High))
+		td.Id = 0
+		qry := []godoo.UserQueryOption{}
+		qry = append(qry, godoo.UserQueryOption{Elem: godoo.ByNextPriority})
+		fq := godoo.FullUserQuery{QueryOptions: qry, QueryData: *td}
+		return fq
 	default:
 		return false
 	}

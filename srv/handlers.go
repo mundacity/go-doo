@@ -147,6 +147,12 @@ func (h *Handler) GetHandler(w http.ResponseWriter, r *http.Request) {
 	if h.priorityMode && len(fq.QueryOptions) == 1 {
 
 		itm, done, msg, err := h.handleQueueMode(fq)
+
+		_, ok := err.(*godoo.PriorityListEmptyError)
+		if ok {
+			http.Error(w, "no unfinished items in priority list", http.StatusBadRequest)
+			return
+		}
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -194,10 +200,12 @@ func (h *Handler) handleQueueMode(fq godoo.FullUserQuery) (itm godoo.TodoItem, d
 // than the get command
 func (h *Handler) runGetNextByPriority(fq godoo.FullUserQuery, rePush bool) (godoo.TodoItem, error) {
 
+	var td *godoo.TodoItem
 	td, err := h.PriorityList.GetNext()
 	if err != nil {
 		lg.Logger.LogWithCallerInfo(lg.Error, fmt.Sprintf("priority list error: %v", err), runtime.Caller)
-		return *td, err
+		var td2 godoo.TodoItem
+		return td2, err
 	}
 
 	if rePush {
